@@ -1,22 +1,33 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: E-Library System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: books
+    description: Book management
+  - name: mylist
+    description: Personal reading list
+  - name: borrow
+    description: Physical library borrow records
+  - name: monitoring
+    description: Admin monitoring
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +35,446 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Unauthorized
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout user
+      responses:
+        "200":
+          description: Logged out
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin only)
+      parameters:
+        - name: campus
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: course
+          in: query
+          schema:
+            type: string
+        - name: year
+          in: query
+          schema:
+            type: string
+        - name: section
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /books:
+    get:
+      operationId: listBooks
+      tags: [books]
+      summary: List books
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: campus
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+
+    post:
+      operationId: createBook
+      tags: [books]
+      summary: Create a book (admin/librarian only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+
+  /books/{id}:
+    get:
+      operationId: getBook
+      tags: [books]
+      summary: Get book by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "404":
+          description: Not found
+
+    put:
+      operationId: updateBook
+      tags: [books]
+      summary: Update book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+
+    delete:
+      operationId: deleteBook
+      tags: [books]
+      summary: Delete book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /my-list:
+    get:
+      operationId: getMyList
+      tags: [mylist]
+      summary: Get current user's reading list
+      responses:
+        "200":
+          description: Reading list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MyListItem"
+
+    post:
+      operationId: addToMyList
+      tags: [mylist]
+      summary: Add book to reading list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MyListInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyListItem"
+
+  /my-list/{bookId}:
+    delete:
+      operationId: removeFromMyList
+      tags: [mylist]
+      summary: Remove book from reading list
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+
+  /borrow-records:
+    get:
+      operationId: listBorrowRecords
+      tags: [borrow]
+      summary: List borrow records
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Borrow records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BorrowRecord"
+
+    post:
+      operationId: createBorrowRecord
+      tags: [borrow]
+      summary: Create borrow record (physical book check-out)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BorrowInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BorrowRecord"
+
+  /borrow-records/{id}:
+    put:
+      operationId: updateBorrowRecord
+      tags: [borrow]
+      summary: Update borrow record (return book)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BorrowUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BorrowRecord"
+
+  /monitoring/stats:
+    get:
+      operationId: getMonitoringStats
+      tags: [monitoring]
+      summary: Get overall monitoring stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitoringStats"
+
+  /monitoring/by-campus:
+    get:
+      operationId: getMonitoringByCampus
+      tags: [monitoring]
+      summary: Get user/activity breakdown by campus
+      responses:
+        "200":
+          description: Campus breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CampusStat"
+
+  /monitoring/by-course:
+    get:
+      operationId: getMonitoringByCourse
+      tags: [monitoring]
+      summary: Get student breakdown by course, year, section
+      responses:
+        "200":
+          description: Course breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourseStat"
+
+  /monitoring/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [monitoring]
+      summary: Get recent user activity feed
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +482,323 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    RegisterInput:
+      type: object
+      required: [fullname, email, password, phone, address, campus, role]
+      properties:
+        fullname:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        campus:
+          type: string
+        role:
+          type: string
+          enum: [admin, librarian, instructor, student]
+        studentNumber:
+          type: ["string", "null"]
+        course:
+          type: ["string", "null"]
+        year:
+          type: ["string", "null"]
+        section:
+          type: ["string", "null"]
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      required: [id, fullname, email, phone, address, campus, role, createdAt]
+      properties:
+        id:
+          type: integer
+        fullname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        campus:
+          type: string
+        role:
+          type: string
+        studentNumber:
+          type: ["string", "null"]
+        course:
+          type: ["string", "null"]
+        year:
+          type: ["string", "null"]
+        section:
+          type: ["string", "null"]
+        isApproved:
+          type: boolean
+        createdAt:
+          type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        fullname:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        campus:
+          type: string
+        isApproved:
+          type: boolean
+        course:
+          type: ["string", "null"]
+        year:
+          type: ["string", "null"]
+        section:
+          type: ["string", "null"]
+
+    Book:
+      type: object
+      required: [id, title, author, description, category, campus, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        campus:
+          type: string
+        coverUrl:
+          type: ["string", "null"]
+        fileUrl:
+          type: ["string", "null"]
+        isbn:
+          type: ["string", "null"]
+        publishedYear:
+          type: ["integer", "null"]
+        isAvailablePhysical:
+          type: boolean
+        totalCopies:
+          type: integer
+        availableCopies:
+          type: integer
+        createdAt:
+          type: string
+
+    BookInput:
+      type: object
+      required: [title, author, description, category, campus]
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        campus:
+          type: string
+        coverUrl:
+          type: ["string", "null"]
+        fileUrl:
+          type: ["string", "null"]
+        isbn:
+          type: ["string", "null"]
+        publishedYear:
+          type: ["integer", "null"]
+        isAvailablePhysical:
+          type: boolean
+        totalCopies:
+          type: integer
+
+    BookUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        campus:
+          type: string
+        coverUrl:
+          type: ["string", "null"]
+        fileUrl:
+          type: ["string", "null"]
+        isbn:
+          type: ["string", "null"]
+        publishedYear:
+          type: ["integer", "null"]
+        isAvailablePhysical:
+          type: boolean
+        totalCopies:
+          type: integer
+
+    MyListItem:
+      type: object
+      required: [id, userId, bookId, addedAt, book]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        bookId:
+          type: integer
+        addedAt:
+          type: string
+        book:
+          $ref: "#/components/schemas/Book"
+
+    MyListInput:
+      type: object
+      required: [bookId]
+      properties:
+        bookId:
+          type: integer
+
+    BorrowRecord:
+      type: object
+      required: [id, userId, bookId, borrowedAt, status]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        bookId:
+          type: integer
+        borrowedAt:
+          type: string
+        returnedAt:
+          type: ["string", "null"]
+        dueDate:
+          type: string
+        status:
+          type: string
+          enum: [borrowed, returned, overdue]
+        user:
+          $ref: "#/components/schemas/User"
+        book:
+          $ref: "#/components/schemas/Book"
+
+    BorrowInput:
+      type: object
+      required: [userId, bookId, dueDate]
+      properties:
+        userId:
+          type: integer
+        bookId:
+          type: integer
+        dueDate:
+          type: string
+
+    BorrowUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [borrowed, returned, overdue]
+        returnedAt:
+          type: ["string", "null"]
+
+    MonitoringStats:
+      type: object
+      required: [totalUsers, totalBooks, activeBorrows, totalStudents, totalInstructors]
+      properties:
+        totalUsers:
+          type: integer
+        totalBooks:
+          type: integer
+        activeBorrows:
+          type: integer
+        totalStudents:
+          type: integer
+        totalInstructors:
+          type: integer
+        overdueBooks:
+          type: integer
+        totalCampuses:
+          type: integer
+
+    CampusStat:
+      type: object
+      required: [campus, totalUsers, students, instructors, activeBorrows]
+      properties:
+        campus:
+          type: string
+        totalUsers:
+          type: integer
+        students:
+          type: integer
+        instructors:
+          type: integer
+        activeBorrows:
+          type: integer
+
+    CourseStat:
+      type: object
+      required: [course, year, section, studentCount, campus]
+      properties:
+        course:
+          type: string
+        year:
+          type: string
+        section:
+          type: string
+        studentCount:
+          type: integer
+        campus:
+          type: string
+        activeBorrows:
+          type: integer
+
+    ActivityItem:
+      type: object
+      required: [id, type, description, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        description:
+          type: string
+        userName:
+          type: string
+        bookTitle:
+          type: ["string", "null"]
+        campus:
+          type: string
+        createdAt:
+          type: string

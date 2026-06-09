@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "E-Library System"
+version = "1.0.0"
+id = "artifacts/elibrary"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19545
+
+[services.development]
+run = "pnpm --filter @workspace/elibrary run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/elibrary", "run", "build" ]
+publicDir = "artifacts/elibrary/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19545"
+BASE_PATH = "/"
