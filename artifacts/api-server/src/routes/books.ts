@@ -13,7 +13,7 @@ function formatBook(book: typeof booksTable.$inferSelect) {
   };
 }
 
-// GET /books
+// GET /books — list without content (faster)
 router.get("/books", requireAuth, async (req, res) => {
   const { search, category, campus } = req.query as Record<string, string>;
 
@@ -35,7 +35,7 @@ router.get("/books", requireAuth, async (req, res) => {
 
 // POST /books
 router.post("/books", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const { title, author, description, category, campus, coverUrl, fileUrl, isbn, publishedYear, isAvailablePhysical, totalCopies } = req.body;
+  const { title, author, description, content, category, campus, coverUrl, fileUrl, isbn, publishedYear, isAvailablePhysical, totalCopies } = req.body;
 
   if (!title || !author || !description || !category || !campus) {
     return res.status(400).json({ error: "Required fields missing" });
@@ -46,6 +46,7 @@ router.post("/books", requireAuth, requireRole("admin", "librarian"), async (req
     title,
     author,
     description,
+    content: content || null,
     category,
     campus,
     coverUrl: coverUrl || null,
@@ -68,7 +69,7 @@ router.post("/books", requireAuth, requireRole("admin", "librarian"), async (req
   return res.status(201).json(formatBook(book));
 });
 
-// GET /books/:id
+// GET /books/:id — includes full content
 router.get("/books/:id", requireAuth, async (req, res) => {
   const id = parseInt(req.params.id);
   const [book] = await db.select().from(booksTable).where(eq(booksTable.id, id));
@@ -80,11 +81,10 @@ router.get("/books/:id", requireAuth, async (req, res) => {
 router.put("/books/:id", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
   const id = parseInt(req.params.id);
   const updates: Record<string, unknown> = {};
-  const fields = ["title", "author", "description", "category", "campus", "coverUrl", "fileUrl", "isbn", "publishedYear", "isAvailablePhysical", "totalCopies"];
+  const fields = ["title", "author", "description", "content", "category", "campus", "coverUrl", "fileUrl", "isbn", "publishedYear", "isAvailablePhysical", "totalCopies"];
 
   for (const field of fields) {
     if (req.body[field] !== undefined) {
-      const dbField = field === "coverUrl" ? "cover_url" : field === "fileUrl" ? "file_url" : field === "isAvailablePhysical" ? "is_available_physical" : field === "totalCopies" ? "total_copies" : field === "publishedYear" ? "published_year" : field;
       updates[field] = req.body[field];
     }
   }

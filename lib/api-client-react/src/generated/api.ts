@@ -888,7 +888,7 @@ export const getGetBookUrl = (id: number,) => {
 }
 
 /**
- * @summary Get book by ID
+ * @summary Get book by ID (includes full content)
  */
 export const getBook = async (id: number, options?: RequestInit): Promise<Book> => {
 
@@ -935,7 +935,7 @@ export type GetBookQueryError = ErrorType<void>
 
 
 /**
- * @summary Get book by ID
+ * @summary Get book by ID (includes full content)
  */
 
 export function useGetBook<TData = Awaited<ReturnType<typeof getBook>>, TError = ErrorType<void>>(

@@ -192,6 +192,7 @@ export const ListBooksResponseItem = zod.object({
   "title": zod.string(),
   "author": zod.string(),
   "description": zod.string(),
+  "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
   "coverUrl": zod.string().nullish(),
@@ -213,6 +214,7 @@ export const CreateBookBody = zod.object({
   "title": zod.string(),
   "author": zod.string(),
   "description": zod.string(),
+  "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
   "coverUrl": zod.string().nullish(),
@@ -225,7 +227,7 @@ export const CreateBookBody = zod.object({
 
 
 /**
- * @summary Get book by ID
+ * @summary Get book by ID (includes full content)
  */
 export const GetBookParams = zod.object({
   "id": zod.coerce.number()
@@ -236,6 +238,7 @@ export const GetBookResponse = zod.object({
   "title": zod.string(),
   "author": zod.string(),
   "description": zod.string(),
+  "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
   "coverUrl": zod.string().nullish(),
@@ -260,6 +263,7 @@ export const UpdateBookBody = zod.object({
   "title": zod.string().optional(),
   "author": zod.string().optional(),
   "description": zod.string().optional(),
+  "content": zod.string().nullish(),
   "category": zod.string().optional(),
   "campus": zod.string().optional(),
   "coverUrl": zod.string().nullish(),
@@ -275,6 +279,7 @@ export const UpdateBookResponse = zod.object({
   "title": zod.string(),
   "author": zod.string(),
   "description": zod.string(),
+  "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
   "coverUrl": zod.string().nullish(),
@@ -309,6 +314,7 @@ export const GetMyListResponseItem = zod.object({
   "title": zod.string(),
   "author": zod.string(),
   "description": zod.string(),
+  "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
   "coverUrl": zod.string().nullish(),
@@ -376,6 +382,7 @@ export const ListBorrowRecordsResponseItem = zod.object({
   "title": zod.string(),
   "author": zod.string(),
   "description": zod.string(),
+  "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
   "coverUrl": zod.string().nullish(),
@@ -441,6 +448,7 @@ export const UpdateBorrowRecordResponse = zod.object({
   "title": zod.string(),
   "author": zod.string(),
   "description": zod.string(),
+  "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
   "coverUrl": zod.string().nullish(),

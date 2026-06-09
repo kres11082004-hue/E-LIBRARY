@@ -1,23 +1,138 @@
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useGetBook, useAddToMyList, useGetMyList, getGetMyListQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, BookMarked, BookmarkX, ExternalLink, BookOpen, Maximize2, Minimize2 } from "lucide-react";
-import { useState } from "react";
+import {
+  ArrowLeft, BookMarked, Sun, Moon, Type, Download, Wifi, WifiOff,
+  ChevronLeft, ChevronRight, AlignLeft, Maximize2, Minimize2
+} from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// ─── Offline cache helpers ────────────────────────────────────────────────────
+function cacheBook(id: number, data: unknown) {
+  try { localStorage.setItem(`book_cache_${id}`, JSON.stringify({ data, ts: Date.now() })); } catch { /* quota */ }
+}
+function getCachedBook(id: number): unknown | null {
+  try {
+    const raw = localStorage.getItem(`book_cache_${id}`);
+    return raw ? JSON.parse(raw).data : null;
+  } catch { return null; }
+}
+function saveProgress(id: number, pos: number) {
+  try { localStorage.setItem(`reading_pos_${id}`, String(pos)); } catch { /* quota */ }
+}
+function getProgress(id: number): number {
+  return parseInt(localStorage.getItem(`reading_pos_${id}`) || "0", 10) || 0;
+}
+
+// ─── Theme configs ────────────────────────────────────────────────────────────
+const THEMES = {
+  white:  { bg: "bg-white", text: "text-gray-900", bar: "bg-gray-200", page: "bg-gray-50" },
+  sepia:  { bg: "bg-amber-50", text: "text-amber-900", bar: "bg-amber-200", page: "bg-amber-100/60" },
+  dark:   { bg: "bg-gray-950", text: "text-gray-100", bar: "bg-gray-800", page: "bg-gray-900" },
+};
+type ThemeKey = keyof typeof THEMES;
+
+const FONT_SIZES = ["text-base", "text-lg", "text-xl"] as const;
+const FONT_LABELS = ["A−", "A", "A+"] as const;
+const LINE_HEIGHTS = ["leading-relaxed", "leading-loose"] as const;
+
+// ─── Paragraph renderer ───────────────────────────────────────────────────────
+function renderContent(content: string, fontSize: string, lineHeight: string, textColor: string) {
+  const paragraphs = content.split(/\n{2,}/).filter(Boolean);
+  return paragraphs.map((para, i) => {
+    const trimmed = para.trim();
+    if (trimmed.startsWith("## ")) {
+      return <h2 key={i} className={`font-serif font-bold text-2xl mt-8 mb-3 ${textColor}`}>{trimmed.slice(3)}</h2>;
+    }
+    if (trimmed.startsWith("# ")) {
+      return <h1 key={i} className={`font-serif font-bold text-3xl mt-10 mb-4 ${textColor}`}>{trimmed.slice(2)}</h1>;
+    }
+    if (trimmed.startsWith("---")) {
+      return <hr key={i} className="my-8 opacity-20" />;
+    }
+    return (
+      <p key={i} className={`${fontSize} ${lineHeight} ${textColor} indent-8 mb-0`}>
+        {trimmed}
+      </p>
+    );
+  });
+}
 
 export default function ReadPage() {
   const [, params] = useRoute("/books/:id/read");
   const id = parseInt(params?.id || "0");
-  const [fullscreen, setFullscreen] = useState(false);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Reader settings
+  const [theme, setTheme] = useState<ThemeKey>(() => (localStorage.getItem("reader_theme") as ThemeKey) || "white");
+  const [fontIdx, setFontIdx] = useState(() => parseInt(localStorage.getItem("reader_font") || "0", 10));
+  const [lineHeight, setLineHeight] = useState<0 | 1>(() => parseInt(localStorage.getItem("reader_lh") || "0", 10) as 0 | 1);
+  const [showControls, setShowControls] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [cachedBook, setCachedBook] = useState<any>(null);
+
+  // Track online/offline
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+
+  // Load cached version immediately for offline
+  useEffect(() => {
+    const c = getCachedBook(id);
+    if (c) setCachedBook(c);
+  }, [id]);
+
+  // Persist settings
+  useEffect(() => { localStorage.setItem("reader_theme", theme); }, [theme]);
+  useEffect(() => { localStorage.setItem("reader_font", String(fontIdx)); }, [fontIdx]);
+  useEffect(() => { localStorage.setItem("reader_lh", String(lineHeight)); }, [lineHeight]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: book, isLoading } = useGetBook(id, { query: { enabled: !!id } as any });
+  const { data: book, isLoading } = useGetBook(id, { query: { enabled: !!id && !isOffline } as any });
+
+  // Cache book when loaded
+  useEffect(() => {
+    if (book) { cacheBook(id, book); setCachedBook(book); }
+  }, [book, id]);
+
+  const displayBook = book || cachedBook;
+
+  // Reading list
   const { data: myList = [] } = useGetMyList();
   const addMutation = useAddToMyList();
   const inMyList = myList.some(item => item.bookId === id);
+
+  // Restore scroll position
+  useEffect(() => {
+    if (!displayBook || !contentRef.current) return;
+    const saved = getProgress(id);
+    if (saved > 0) {
+      setTimeout(() => {
+        contentRef.current?.scrollTo({ top: saved });
+      }, 100);
+    }
+  }, [displayBook, id]);
+
+  // Track scroll progress
+  const handleScroll = useCallback(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const scrollable = el.scrollHeight - el.clientHeight;
+    const pct = scrollable > 0 ? Math.round((el.scrollTop / scrollable) * 100) : 0;
+    setProgress(pct);
+    saveProgress(id, el.scrollTop);
+  }, [id]);
 
   const handleToggleList = async () => {
     try {
@@ -29,9 +144,34 @@ export default function ReadPage() {
     }
   };
 
-  if (isLoading) {
+  const handleDownload = () => {
+    if (!displayBook) return;
+    const text = [
+      displayBook.title,
+      `by ${displayBook.author}`,
+      displayBook.isbn ? `ISBN: ${displayBook.isbn}` : "",
+      displayBook.publishedYear ? `Published: ${displayBook.publishedYear}` : "",
+      "",
+      "─".repeat(60),
+      "",
+      displayBook.content || displayBook.description,
+    ].filter(l => l !== undefined).join("\n");
+
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${displayBook.title.replace(/[^a-z0-9]/gi, "_")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Download started" });
+  };
+
+  const t = THEMES[theme];
+
+  if (isLoading && !cachedBook) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[60vh]">
+      <div className={`flex items-center justify-center min-h-screen ${t.bg}`}>
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Loading book...</p>
@@ -40,90 +180,190 @@ export default function ReadPage() {
     );
   }
 
-  if (!book) {
+  if (!displayBook) {
     return (
       <div className="p-6 text-center py-20">
-        <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
         <h2 className="font-semibold text-foreground">Book not found</h2>
         <Link href="/books"><Button variant="outline" className="mt-4">Back to Library</Button></Link>
       </div>
     );
   }
 
+  const hasContent = !!(displayBook.content && displayBook.content.trim().length > 0);
+
   return (
-    <div className={`flex flex-col ${fullscreen ? "fixed inset-0 z-50 bg-background" : "h-full"}`}>
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b bg-card shrink-0">
+    <div className={`flex flex-col ${fullscreen ? "fixed inset-0 z-50" : "h-full min-h-screen"} ${t.bg} transition-colors duration-300`}>
+
+      {/* Reading progress bar */}
+      <div className="fixed top-0 left-0 right-0 h-1 z-50">
+        <div className="h-full bg-primary transition-all duration-150" style={{ width: `${progress}%` }} />
+      </div>
+
+      {/* Top bar */}
+      <div
+        className={`flex items-center justify-between px-4 py-2.5 border-b transition-opacity ${t.bg} ${theme === "dark" ? "border-gray-800" : "border-gray-200"} ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"} sticky top-1 z-40`}
+        style={{ transition: "opacity 0.2s" }}
+      >
         <div className="flex items-center gap-3 min-w-0">
-          <Link href={`/books/${book.id}`}>
-            <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          </Link>
-          <div className="hidden sm:block h-4 w-px bg-border" />
+          <button
+            onClick={() => setLocation(`/books/${id}`)}
+            className={`flex items-center gap-1.5 text-sm font-medium shrink-0 ${t.text} opacity-70 hover:opacity-100 transition-opacity`}
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <div className="hidden sm:block h-4 w-px bg-current opacity-20" />
           <div className="min-w-0 hidden sm:block">
-            <p className="text-sm font-semibold text-foreground truncate">{book.title}</p>
-            <p className="text-xs text-muted-foreground truncate">{book.author}</p>
+            <p className={`text-sm font-semibold truncate ${t.text}`}>{displayBook.title}</p>
+            <p className={`text-xs truncate ${t.text} opacity-60`}>{displayBook.author}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1">
+          {/* Offline indicator */}
+          {isOffline && (
+            <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full mr-1 ${theme === "dark" ? "bg-amber-900/50 text-amber-300" : "bg-amber-100 text-amber-700"}`}>
+              <WifiOff className="w-3 h-3" /> Offline
+            </span>
+          )}
+          {/* Font size */}
+          <button
+            onClick={() => setFontIdx(i => (i + 1) % 3)}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${t.text} opacity-70 hover:opacity-100 hover:bg-black/5 transition-all`}
+            title="Font size"
+          >
+            {FONT_LABELS[fontIdx]}
+          </button>
+          {/* Line height */}
+          <button
+            onClick={() => setLineHeight(h => h === 0 ? 1 : 0)}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center ${t.text} opacity-70 hover:opacity-100 hover:bg-black/5 transition-all`}
+            title="Line spacing"
+          >
+            <AlignLeft className="w-4 h-4" />
+          </button>
+          {/* Theme */}
+          <button
+            onClick={() => setTheme(th => th === "white" ? "sepia" : th === "sepia" ? "dark" : "white")}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center ${t.text} opacity-70 hover:opacity-100 hover:bg-black/5 transition-all`}
+            title="Reading theme"
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          {/* Download */}
+          <button
+            onClick={handleDownload}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center ${t.text} opacity-70 hover:opacity-100 hover:bg-black/5 transition-all`}
+            title="Download as text"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+          {/* Save to list */}
           {!inMyList && (
-            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleToggleList} disabled={addMutation.isPending}>
-              <BookMarked className="w-3 h-3" /> Save
-            </Button>
+            <button
+              onClick={handleToggleList}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center ${t.text} opacity-70 hover:opacity-100 hover:bg-black/5 transition-all`}
+              title="Save to reading list"
+            >
+              <BookMarked className="w-4 h-4" />
+            </button>
           )}
-          {book.fileUrl && (
-            <a href={book.fileUrl} target="_blank" rel="noopener noreferrer">
-              <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs">
-                <ExternalLink className="w-3 h-3" /> Open in tab
-              </Button>
-            </a>
-          )}
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setFullscreen(f => !f)} title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+          {/* Fullscreen */}
+          <button
+            onClick={() => setFullscreen(f => !f)}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center ${t.text} opacity-70 hover:opacity-100 hover:bg-black/5 transition-all`}
+            title="Fullscreen"
+          >
             {fullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* Reader Area */}
-      <div className="flex-1 overflow-hidden">
-        {book.fileUrl ? (
-          <iframe
-            src={book.fileUrl}
-            title={book.title}
-            className="w-full h-full border-0"
-            style={{ minHeight: fullscreen ? "calc(100vh - 48px)" : "calc(100vh - 180px)" }}
-            allow="fullscreen"
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center px-6 py-12">
-            <div className="w-24 h-32 bg-muted rounded-lg flex items-center justify-center mb-6 shadow-sm">
-              {book.coverUrl ? (
-                <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover rounded-lg" />
-              ) : (
-                <BookOpen className="w-10 h-10 text-muted-foreground/40" />
-              )}
-            </div>
-            <h2 className="text-xl font-bold text-foreground mb-1">{book.title}</h2>
-            <p className="text-muted-foreground mb-6">{book.author}</p>
-
-            <div className="max-w-md bg-muted/50 rounded-xl p-5 text-left mb-6">
-              <p className="text-sm font-semibold text-foreground mb-2">About this book</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">{book.description}</p>
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 max-w-sm text-center">
-              <BookOpen className="w-6 h-6 text-amber-600 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-amber-800">No digital copy available</p>
-              <p className="text-xs text-amber-700 mt-1">
-                {book.isAvailablePhysical
-                  ? `Visit the ${book.campus} library to borrow a physical copy (${book.availableCopies ?? 0} available).`
-                  : "Contact the library to request a digital copy of this book."}
-              </p>
-            </div>
+      {/* Main reading area */}
+      <div
+        ref={contentRef}
+        onScroll={handleScroll}
+        onClick={() => setShowControls(c => !c)}
+        className="flex-1 overflow-y-auto"
+        style={{ scrollBehavior: "smooth" }}
+      >
+        <div className="max-w-2xl mx-auto px-6 py-10 pb-24">
+          {/* Book header */}
+          <div className="text-center mb-12">
+            {displayBook.coverUrl && (
+              <img
+                src={displayBook.coverUrl}
+                alt={displayBook.title}
+                className="w-32 h-44 object-cover rounded-xl shadow-lg mx-auto mb-8"
+              />
+            )}
+            <h1 className={`font-serif font-bold text-3xl md:text-4xl leading-tight mb-3 ${t.text}`}>
+              {displayBook.title}
+            </h1>
+            <p className={`text-lg ${t.text} opacity-60 mb-1`}>{displayBook.author}</p>
+            {displayBook.publishedYear && (
+              <p className={`text-sm ${t.text} opacity-40`}>{displayBook.publishedYear}</p>
+            )}
+            <div className={`mt-6 w-16 h-0.5 mx-auto ${theme === "dark" ? "bg-gray-700" : "bg-gray-300"}`} />
           </div>
-        )}
+
+          {/* Content */}
+          {hasContent ? (
+            <div className="space-y-6">
+              {renderContent(displayBook.content!, FONT_SIZES[fontIdx], LINE_HEIGHTS[lineHeight], t.text)}
+            </div>
+          ) : (
+            /* No content — show description + placeholder */
+            <div className="space-y-8">
+              <div className={`rounded-2xl p-6 ${t.page}`}>
+                <p className={`text-sm font-semibold uppercase tracking-widest mb-3 ${t.text} opacity-40`}>About this book</p>
+                <p className={`${FONT_SIZES[fontIdx]} ${LINE_HEIGHTS[lineHeight]} ${t.text} opacity-80 leading-relaxed`}>
+                  {displayBook.description}
+                </p>
+              </div>
+              <div className={`rounded-2xl border-2 border-dashed p-8 text-center ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+                <Type className={`w-8 h-8 mx-auto mb-3 ${t.text} opacity-30`} />
+                <p className={`font-semibold mb-1 ${t.text} opacity-60`}>Full text not yet available</p>
+                <p className={`text-sm ${t.text} opacity-40 mb-4`}>
+                  An admin or librarian can add the full book content.
+                </p>
+                {displayBook.isAvailablePhysical && (
+                  <p className={`text-sm ${t.text} opacity-50`}>
+                    Physical copy available at <strong>{displayBook.campus}</strong> library ({displayBook.availableCopies ?? 0} copies).
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* End of book */}
+          {hasContent && (
+            <div className={`mt-16 pt-8 border-t text-center ${theme === "dark" ? "border-gray-800" : "border-gray-200"}`}>
+              <div className={`text-2xl mb-3`}>✦</div>
+              <p className={`font-serif text-lg italic ${t.text} opacity-50`}>End of book</p>
+              <p className={`text-sm ${t.text} opacity-30 mt-1`}>{displayBook.title} · {displayBook.author}</p>
+              <div className="flex justify-center gap-3 mt-6">
+                <Button variant="outline" onClick={() => setLocation("/books")} className={theme === "dark" ? "border-gray-700 text-gray-300 hover:bg-gray-800" : ""}>
+                  Browse More Books
+                </Button>
+                <Button onClick={handleDownload} className="gap-2">
+                  <Download className="w-4 h-4" /> Download
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom progress bar */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 py-2 px-6 flex items-center gap-3 transition-opacity ${t.bg} ${theme === "dark" ? "border-gray-800" : "border-gray-100"} border-t ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        style={{ transition: "opacity 0.2s" }}
+      >
+        <span className={`text-xs ${t.text} opacity-40 shrink-0`}>0%</span>
+        <div className={`flex-1 h-1.5 rounded-full ${theme === "dark" ? "bg-gray-800" : "bg-gray-200"}`}>
+          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progress}%` }} />
+        </div>
+        <span className={`text-xs ${t.text} opacity-40 shrink-0`}>{progress}%</span>
       </div>
     </div>
   );

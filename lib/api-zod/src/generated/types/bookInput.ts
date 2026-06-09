@@ -10,6 +10,8 @@ export interface BookInput {
   title: string;
   author: string;
   description: string;
+  /** @nullable */
+  content?: string | null;
   category: string;
   campus: string;
   /** @nullable */

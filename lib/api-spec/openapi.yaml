@@ -247,7 +247,7 @@ paths:
     get:
       operationId: getBook
       tags: [books]
-      summary: Get book by ID
+      summary: Get book by ID (includes full content)
       parameters:
         - name: id
           in: path
@@ -593,6 +593,8 @@ components:
           type: string
         description:
           type: string
+        content:
+          type: ["string", "null"]
         category:
           type: string
         campus:
@@ -624,6 +626,8 @@ components:
           type: string
         description:
           type: string
+        content:
+          type: ["string", "null"]
         category:
           type: string
         campus:
@@ -650,6 +654,8 @@ components:
           type: string
         description:
           type: string
+        content:
+          type: ["string", "null"]
         category:
           type: string
         campus:

@@ -7,6 +7,7 @@ export const booksTable = pgTable("books", {
   title: text("title").notNull(),
   author: text("author").notNull(),
   description: text("description").notNull(),
+  content: text("content"),
   category: text("category").notNull(),
   campus: text("campus").notNull(),
   coverUrl: text("cover_url"),

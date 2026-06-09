@@ -86,6 +86,8 @@ export interface Book {
   title: string;
   author: string;
   description: string;
+  /** @nullable */
+  content?: string | null;
   category: string;
   campus: string;
   /** @nullable */
@@ -106,6 +108,8 @@ export interface BookInput {
   title: string;
   author: string;
   description: string;
+  /** @nullable */
+  content?: string | null;
   category: string;
   campus: string;
   /** @nullable */
@@ -124,6 +128,8 @@ export interface BookUpdate {
   title?: string;
   author?: string;
   description?: string;
+  /** @nullable */
+  content?: string | null;
   category?: string;
   campus?: string;
   /** @nullable */

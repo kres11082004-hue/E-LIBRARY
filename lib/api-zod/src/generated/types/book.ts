@@ -11,6 +11,8 @@ export interface Book {
   title: string;
   author: string;
   description: string;
+  /** @nullable */
+  content?: string | null;
   category: string;
   campus: string;
   /** @nullable */
