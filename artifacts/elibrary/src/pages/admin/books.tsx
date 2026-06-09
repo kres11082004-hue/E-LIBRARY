@@ -139,7 +139,6 @@ export default function AdminBooksPage() {
               <tr>
                 <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Book</th>
                 <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Category</th>
-                <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Campus</th>
                 <th className="text-center p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Digital Content</th>
                 <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Physical</th>
                 <th className="text-right p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
@@ -168,7 +167,6 @@ export default function AdminBooksPage() {
                   <td className="p-4 hidden md:table-cell">
                     <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">{book.category}</span>
                   </td>
-                  <td className="p-4 hidden lg:table-cell text-sm text-muted-foreground">{book.campus}</td>
                   <td className="p-4 hidden lg:table-cell text-center">
                     {book.content ? (
                       <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
