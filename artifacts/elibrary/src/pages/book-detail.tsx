@@ -1,13 +1,14 @@
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useGetBook, useAddToMyList, useRemoveFromMyList, useGetMyList, getGetMyListQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, ArrowLeft, BookMarked, BookmarkX, Download, Calendar, Hash, Building, Globe } from "lucide-react";
+import { BookOpen, ArrowLeft, BookMarked, BookmarkX, Calendar, Hash, Building, BookText } from "lucide-react";
 
 export default function BookDetailPage() {
   const [, params] = useRoute("/books/:id");
   const id = parseInt(params?.id || "0");
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -71,33 +72,46 @@ export default function BookDetailPage() {
       <div className="flex flex-col md:flex-row gap-8">
         {/* Cover */}
         <div className="shrink-0">
-          <div className="w-full md:w-48 h-64 bg-muted rounded-xl overflow-hidden shadow-md">
+          <div
+            className="w-full md:w-48 h-64 bg-muted rounded-xl overflow-hidden shadow-md cursor-pointer group relative"
+            onClick={() => setLocation(`/books/${id}/read`)}
+          >
             {book.coverUrl ? (
-              <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
+              <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
                 <BookOpen className="w-10 h-10 opacity-30" />
                 <span className="text-xs text-center px-4">{book.category}</span>
               </div>
             )}
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-primary/80 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+              <BookText className="w-8 h-8 text-white" />
+              <span className="text-white text-sm font-semibold">Read Now</span>
+            </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
+            {/* Primary: Read Now */}
+            <Button
+              className="w-full gap-2"
+              onClick={() => setLocation(`/books/${id}/read`)}
+            >
+              <BookText className="w-4 h-4" />
+              {book.fileUrl ? "Read Now" : "Open Book"}
+            </Button>
+
+            {/* Secondary: Save */}
             <Button
               onClick={handleToggleList}
-              variant={inMyList ? "secondary" : "default"}
+              variant={inMyList ? "secondary" : "outline"}
               className="w-full gap-2"
               disabled={addMutation.isPending || removeMutation.isPending}
             >
-              {inMyList ? <><BookmarkX className="w-4 h-4" /> Remove from List</> : <><BookMarked className="w-4 h-4" /> Save to My List</>}
+              {inMyList
+                ? <><BookmarkX className="w-4 h-4" /> Remove from List</>
+                : <><BookMarked className="w-4 h-4" /> Save to My List</>}
             </Button>
-            {book.fileUrl && (
-              <a href={book.fileUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" className="w-full gap-2">
-                  <Globe className="w-4 h-4" /> Read Online
-                </Button>
-              </a>
-            )}
           </div>
         </div>
 
@@ -107,6 +121,12 @@ export default function BookDetailPage() {
             <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">{book.category}</span>
             <h1 className="text-2xl font-bold text-foreground mt-3 leading-tight">{book.title}</h1>
             <p className="text-lg text-muted-foreground mt-1">{book.author}</p>
+          </div>
+
+          {/* Digital availability badge */}
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${book.fileUrl ? "bg-green-50 text-green-700 border border-green-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+            <div className={`w-2 h-2 rounded-full ${book.fileUrl ? "bg-green-500" : "bg-amber-400"}`} />
+            {book.fileUrl ? "Digital copy available — read online" : "No digital copy — physical only"}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

@@ -15,6 +15,7 @@ import ProfilePage from "@/pages/profile";
 import AdminBooksPage from "@/pages/admin/books";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminMonitoringPage from "@/pages/admin/monitoring";
+import ReadPage from "@/pages/read";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/">{() => <ProtectedRoute component={HomePage} />}</Route>
       <Route path="/books">{() => <ProtectedRoute component={BooksPage} />}</Route>
       <Route path="/books/:id">{() => <ProtectedRoute component={BookDetailPage} />}</Route>
+      <Route path="/books/:id/read">{() => <ProtectedRoute component={ReadPage} />}</Route>
       <Route path="/my-list">{() => <ProtectedRoute component={MyListPage} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
       <Route path="/admin/books">{() => <ProtectedRoute component={AdminBooksPage} adminOnly />}</Route>
