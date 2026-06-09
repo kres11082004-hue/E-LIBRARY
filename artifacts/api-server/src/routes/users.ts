@@ -40,7 +40,7 @@ router.get("/users", requireAuth, requireRole("admin", "librarian"), async (req,
 
 // GET /users/:id
 router.get("/users/:id", requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params["id"] as string);
   const [user] = await db.select({
     id: usersTable.id,
     fullname: usersTable.fullname,
@@ -63,7 +63,7 @@ router.get("/users/:id", requireAuth, async (req, res) => {
 
 // PUT /users/:id
 router.put("/users/:id", requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params["id"] as string);
   const { fullname, phone, address, campus, isApproved, course, year, section } = req.body;
 
   // Only admins/librarians can update other users or approval status
@@ -92,7 +92,7 @@ router.put("/users/:id", requireAuth, async (req, res) => {
 
 // DELETE /users/:id
 router.delete("/users/:id", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params["id"] as string);
   await db.delete(usersTable).where(eq(usersTable.id, id));
   return res.status(204).send();
 });

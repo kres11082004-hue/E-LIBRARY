@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListBooks, useCreateBook, useUpdateBook, useDeleteBook, useGetBook, getListBooksQueryKey } from "@workspace/api-client-react";
+import { useListBooks, useCreateBook, useUpdateBook, useDeleteBook, getListBooksQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, BookOpen, Search, FileText, BookText, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Pencil, Trash2, BookOpen, Search, FileText, BookText, CheckCircle2, Circle, Link2, Loader2, Sparkles } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 const CATEGORIES = ["Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
 const CAMPUSES = ["Main Campus", "North Campus", "South Campus", "East Campus", "West Campus", "Engineering Campus", "Medical Campus", "Business Campus"];
@@ -24,8 +25,46 @@ export default function AdminBooksPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [deleteConfirmId, setDeleteConfirmId] = useState<{ id: number; title: string } | null>(null);
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const handleImportUrl = async () => {
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/books/import-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url: importUrl.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to fetch" }));
+        throw new Error(err.error || "Import failed");
+      }
+      const meta = await res.json();
+      setForm(f => ({
+        ...f,
+        title: meta.title || f.title,
+        author: meta.author || f.author,
+        description: meta.description || f.description,
+        coverUrl: meta.coverUrl || f.coverUrl,
+        isbn: meta.isbn || f.isbn,
+        publishedYear: meta.publishedYear ? String(meta.publishedYear) : f.publishedYear,
+        category: meta.category && CATEGORIES.includes(meta.category) ? meta.category : f.category,
+        fileUrl: meta.fileUrl || f.fileUrl,
+      }));
+      toast({ title: "Book details imported!", description: "Review the fields below and fill in anything missing." });
+      setImportUrl("");
+    } catch (err: any) {
+      toast({ title: "Import failed", description: err.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const { data: books = [], isLoading } = useListBooks({ search: search || undefined });
   const createMutation = useCreateBook();
@@ -213,6 +252,41 @@ export default function AdminBooksPage() {
             <DialogTitle>{editId ? "Edit Book" : "Add New Book"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
+            {/* ── Import from URL ── */}
+            {!editId && (
+              <div className="mb-5 rounded-xl border bg-muted/40 p-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Import from a link
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Paste a Google Books, Open Library, or any book page URL and we'll auto-fill the details for you.
+                </p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9 text-sm"
+                      placeholder="https://books.google.com/books?id=..."
+                      value={importUrl}
+                      onChange={e => setImportUrl(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleImportUrl(); } }}
+                      disabled={importing}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleImportUrl}
+                    disabled={importing || !importUrl.trim()}
+                    className="gap-2 shrink-0"
+                  >
+                    {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Fetching...</> : "Fetch Details"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <Tabs defaultValue="details" className="space-y-4">
               <TabsList className="w-full">
                 <TabsTrigger value="details" className="flex-1 gap-2">

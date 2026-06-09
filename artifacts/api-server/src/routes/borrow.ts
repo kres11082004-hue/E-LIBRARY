@@ -87,7 +87,7 @@ router.post("/borrow-records", requireAuth, requireRole("admin", "librarian"), a
 
 // PUT /borrow-records/:id
 router.put("/borrow-records/:id", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params["id"] as string);
   const { status, returnedAt } = req.body;
 
   const [existing] = await db.select().from(borrowRecordsTable).where(eq(borrowRecordsTable.id, id));

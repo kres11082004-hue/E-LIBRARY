@@ -71,7 +71,7 @@ router.post("/books", requireAuth, requireRole("admin", "librarian"), async (req
 
 // GET /books/:id — includes full content
 router.get("/books/:id", requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params["id"] as string);
   const [book] = await db.select().from(booksTable).where(eq(booksTable.id, id));
   if (!book) return res.status(404).json({ error: "Book not found" });
   return res.json(formatBook(book));
@@ -79,7 +79,7 @@ router.get("/books/:id", requireAuth, async (req, res) => {
 
 // PUT /books/:id
 router.put("/books/:id", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params["id"] as string);
   const updates: Record<string, unknown> = {};
   const fields = ["title", "author", "description", "content", "category", "campus", "coverUrl", "fileUrl", "isbn", "publishedYear", "isAvailablePhysical", "totalCopies"];
 
@@ -96,7 +96,7 @@ router.put("/books/:id", requireAuth, requireRole("admin", "librarian"), async (
 
 // DELETE /books/:id
 router.delete("/books/:id", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params["id"] as string);
   await db.delete(booksTable).where(eq(booksTable.id, id));
   return res.status(204).send();
 });

@@ -52,7 +52,7 @@ router.post("/my-list", requireAuth, async (req, res) => {
 // DELETE /my-list/:bookId
 router.delete("/my-list/:bookId", requireAuth, async (req, res) => {
   const userId = req.user!.id;
-  const bookId = parseInt(req.params.bookId);
+  const bookId = parseInt(req.params["bookId"] as string);
 
   await db.delete(myListTable).where(
     and(eq(myListTable.userId, userId), eq(myListTable.bookId, bookId))
