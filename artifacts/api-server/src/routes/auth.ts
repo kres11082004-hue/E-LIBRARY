@@ -56,7 +56,7 @@ router.post("/auth/register", async (req, res) => {
   }
 
   const passwordHash = hashPassword(password);
-  const isAdmin = role === "admin" || role === "librarian";
+  const isAdmin = role === "admin";
 
   const [user] = await db.insert(usersTable).values({
     fullname,

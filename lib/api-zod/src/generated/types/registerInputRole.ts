@@ -11,7 +11,6 @@ export type RegisterInputRole = typeof RegisterInputRole[keyof typeof RegisterIn
 
 export const RegisterInputRole = {
   admin: 'admin',
-  librarian: 'librarian',
   instructor: 'instructor',
   student: 'student',
 } as const;

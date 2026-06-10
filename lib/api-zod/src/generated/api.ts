@@ -54,7 +54,7 @@ export const RegisterBody = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
-  "role": zod.enum(['admin', 'librarian', 'instructor', 'student']),
+  "role": zod.enum(['admin', 'instructor', 'student']),
   "studentNumber": zod.string().nullish(),
   "course": zod.string().nullish(),
   "year": zod.string().nullish(),
@@ -460,6 +460,73 @@ export const UpdateBorrowRecordResponse = zod.object({
   "availableCopies": zod.number().optional(),
   "createdAt": zod.string()
 }).optional()
+})
+
+
+/**
+ * @summary List reservations (admin sees all, user sees own)
+ */
+export const ListReservationsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "bookId": zod.number(),
+  "status": zod.enum(['pending', 'ready', 'fulfilled', 'cancelled']),
+  "notes": zod.string().nullish(),
+  "reservedAt": zod.string(),
+  "updatedAt": zod.string(),
+  "userName": zod.string(),
+  "userEmail": zod.string(),
+  "bookTitle": zod.string(),
+  "bookAuthor": zod.string(),
+  "bookCoverUrl": zod.string().nullish(),
+  "bookCampus": zod.string()
+})
+export const ListReservationsResponse = zod.array(ListReservationsResponseItem)
+
+
+/**
+ * @summary Reserve a physical copy of a book
+ */
+export const CreateReservationBody = zod.object({
+  "bookId": zod.number(),
+  "notes": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update reservation status (admin only)
+ */
+export const UpdateReservationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateReservationBody = zod.object({
+  "status": zod.enum(['pending', 'ready', 'fulfilled', 'cancelled']),
+  "notes": zod.string().nullish()
+})
+
+export const UpdateReservationResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "bookId": zod.number(),
+  "status": zod.enum(['pending', 'ready', 'fulfilled', 'cancelled']),
+  "notes": zod.string().nullish(),
+  "reservedAt": zod.string(),
+  "updatedAt": zod.string(),
+  "userName": zod.string(),
+  "userEmail": zod.string(),
+  "bookTitle": zod.string(),
+  "bookAuthor": zod.string(),
+  "bookCoverUrl": zod.string().nullish(),
+  "bookCampus": zod.string()
+})
+
+
+/**
+ * @summary Cancel a reservation
+ */
+export const DeleteReservationParams = zod.object({
+  "id": zod.coerce.number()
 })
 
 

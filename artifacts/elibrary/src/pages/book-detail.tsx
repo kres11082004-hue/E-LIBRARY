@@ -1,9 +1,30 @@
 import { useRoute, Link, useLocation } from "wouter";
-import { useGetBook, useAddToMyList, useRemoveFromMyList, useGetMyList, getGetMyListQueryKey } from "@workspace/api-client-react";
+import {
+  useGetBook,
+  useAddToMyList,
+  useRemoveFromMyList,
+  useGetMyList,
+  useListReservations,
+  useCreateReservation,
+  useDeleteReservation,
+  getGetMyListQueryKey,
+  getListReservationsQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, ArrowLeft, BookMarked, BookmarkX, Calendar, Hash, Building, BookText } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import {
+  BookOpen, ArrowLeft, BookMarked, BookmarkX, Calendar, Hash,
+  Building, BookText, Clock, CheckCircle, XCircle, CalendarCheck,
+} from "lucide-react";
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
+  pending:   { label: "Reservation Pending",    color: "text-amber-700 bg-amber-50 border-amber-200",   Icon: Clock },
+  ready:     { label: "Ready for Pickup!",       color: "text-green-700 bg-green-50 border-green-200",   Icon: CheckCircle },
+  fulfilled: { label: "Reservation Fulfilled",   color: "text-blue-700 bg-blue-50 border-blue-200",     Icon: CalendarCheck },
+  cancelled: { label: "Reservation Cancelled",   color: "text-muted-foreground bg-muted border-border",  Icon: XCircle },
+};
 
 export default function BookDetailPage() {
   const [, params] = useRoute("/books/:id");
@@ -11,14 +32,23 @@ export default function BookDetailPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: book, isLoading } = useGetBook(id, { query: { enabled: !!id } as any });
   const { data: myList = [] } = useGetMyList();
+  const { data: reservations = [] } = useListReservations();
   const addMutation = useAddToMyList();
   const removeMutation = useRemoveFromMyList();
+  const createReservation = useCreateReservation();
+  const cancelReservation = useDeleteReservation();
 
   const inMyList = myList.some(item => item.bookId === id);
+
+  // Find user's reservation for this book
+  const myReservation = reservations.find(
+    r => r.bookId === id && r.userId === user?.id
+  );
+  const hasActiveReservation = myReservation && (myReservation.status === "pending" || myReservation.status === "ready");
 
   const handleToggleList = async () => {
     try {
@@ -32,6 +62,27 @@ export default function BookDetailPage() {
       queryClient.invalidateQueries({ queryKey: getGetMyListQueryKey() });
     } catch {
       toast({ title: "Something went wrong", variant: "destructive" });
+    }
+  };
+
+  const handleReserve = async () => {
+    try {
+      await createReservation.mutateAsync({ data: { bookId: id } });
+      toast({ title: "Reservation submitted!", description: "Visit the library to pick it up when it's ready." });
+      queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+    } catch (err: any) {
+      toast({ title: err?.data?.error || "Could not reserve book", variant: "destructive" });
+    }
+  };
+
+  const handleCancelReservation = async () => {
+    if (!myReservation) return;
+    try {
+      await cancelReservation.mutateAsync({ id: myReservation.id });
+      toast({ title: "Reservation cancelled" });
+      queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+    } catch {
+      toast({ title: "Could not cancel reservation", variant: "destructive" });
     }
   };
 
@@ -61,6 +112,8 @@ export default function BookDetailPage() {
     );
   }
 
+  const reservationStatus = myReservation ? STATUS_CONFIG[myReservation.status] : null;
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <Link href="/books">
@@ -84,7 +137,6 @@ export default function BookDetailPage() {
                 <span className="text-xs text-center px-4">{book.category}</span>
               </div>
             )}
-            {/* Hover overlay */}
             <div className="absolute inset-0 bg-primary/80 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
               <BookText className="w-8 h-8 text-white" />
               <span className="text-white text-sm font-semibold">Read Now</span>
@@ -92,16 +144,11 @@ export default function BookDetailPage() {
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            {/* Primary: Read Now */}
-            <Button
-              className="w-full gap-2"
-              onClick={() => setLocation(`/books/${id}/read`)}
-            >
+            <Button className="w-full gap-2" onClick={() => setLocation(`/books/${id}/read`)}>
               <BookText className="w-4 h-4" />
               {book.fileUrl ? "Read Now" : "Open Book"}
             </Button>
 
-            {/* Secondary: Save */}
             <Button
               onClick={handleToggleList}
               variant={inMyList ? "secondary" : "outline"}
@@ -153,10 +200,12 @@ export default function BookDetailPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">{book.description}</p>
           </div>
 
-          {/* Physical Availability */}
+          {/* Physical Availability + Reserve */}
           {book.isAvailablePhysical && (
-            <div className="bg-card border rounded-xl p-4">
-              <h3 className="font-semibold text-sm text-foreground mb-3">Physical Copy Availability</h3>
+            <div className="bg-card border rounded-xl p-4 space-y-4">
+              <h3 className="font-semibold text-sm text-foreground">Physical Copy Availability</h3>
+
+              {/* Copy count */}
               <div className="flex items-center gap-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-foreground">{book.availableCopies ?? 0}</p>
@@ -179,7 +228,51 @@ export default function BookDetailPage() {
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-3">Visit {book.campus} library to borrow a physical copy.</p>
+
+              {/* Reservation status badge */}
+              {reservationStatus && (
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border ${reservationStatus.color}`}>
+                  <reservationStatus.Icon className="w-4 h-4 shrink-0" />
+                  <div>
+                    <p className="font-semibold">{reservationStatus.label}</p>
+                    {myReservation?.status === "ready" && (
+                      <p className="text-xs font-normal mt-0.5">Visit {book.campus} library to collect your reserved copy.</p>
+                    )}
+                    {myReservation?.status === "pending" && (
+                      <p className="text-xs font-normal mt-0.5">We'll prepare your copy — please visit {book.campus} library.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Reserve / cancel button — only for non-admin users */}
+              {user?.role !== "admin" && user?.role !== "librarian" && (
+                <>
+                  {hasActiveReservation ? (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 text-destructive hover:text-destructive hover:border-destructive/50"
+                      onClick={handleCancelReservation}
+                      disabled={cancelReservation.isPending}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Cancel My Reservation
+                    </Button>
+                  ) : myReservation?.status !== "fulfilled" && (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 border-primary text-primary hover:bg-primary/5"
+                      onClick={handleReserve}
+                      disabled={createReservation.isPending}
+                    >
+                      <CalendarCheck className="w-4 h-4" />
+                      Reserve a Physical Copy
+                    </Button>
+                  )}
+                </>
+              )}
+
+              <p className="text-xs text-muted-foreground">Visit {book.campus} library to borrow or collect reserved copies.</p>
             </div>
           )}
         </div>

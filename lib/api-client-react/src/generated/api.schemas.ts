@@ -19,7 +19,6 @@ export type RegisterInputRole = typeof RegisterInputRole[keyof typeof RegisterIn
 
 export const RegisterInputRole = {
   admin: 'admin',
-  librarian: 'librarian',
   instructor: 'instructor',
   student: 'student',
 } as const;
@@ -224,6 +223,56 @@ export interface CourseStat {
   studentCount: number;
   campus: string;
   activeBorrows?: number;
+}
+
+export type ReservationStatus = typeof ReservationStatus[keyof typeof ReservationStatus];
+
+
+export const ReservationStatus = {
+  pending: 'pending',
+  ready: 'ready',
+  fulfilled: 'fulfilled',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Reservation {
+  id: number;
+  userId: number;
+  bookId: number;
+  status: ReservationStatus;
+  /** @nullable */
+  notes?: string | null;
+  reservedAt: string;
+  updatedAt: string;
+  userName: string;
+  userEmail: string;
+  bookTitle: string;
+  bookAuthor: string;
+  /** @nullable */
+  bookCoverUrl?: string | null;
+  bookCampus: string;
+}
+
+export interface ReservationInput {
+  bookId: number;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export type ReservationUpdateStatus = typeof ReservationUpdateStatus[keyof typeof ReservationUpdateStatus];
+
+
+export const ReservationUpdateStatus = {
+  pending: 'pending',
+  ready: 'ready',
+  fulfilled: 'fulfilled',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ReservationUpdate {
+  status: ReservationUpdateStatus;
+  /** @nullable */
+  notes?: string | null;
 }
 
 export interface ActivityItem {

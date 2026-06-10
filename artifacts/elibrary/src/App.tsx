@@ -15,6 +15,7 @@ import ProfilePage from "@/pages/profile";
 import AdminBooksPage from "@/pages/admin/books";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminMonitoringPage from "@/pages/admin/monitoring";
+import AdminReservationsPage from "@/pages/admin/reservations";
 import ReadPage from "@/pages/read";
 
 const queryClient = new QueryClient({
@@ -45,7 +46,7 @@ function ProtectedRoute({
       </div>
     );
   if (!user) return <Redirect to="/login" />;
-  if (adminOnly && user.role !== "admin" && user.role !== "librarian")
+  if (adminOnly && user.role !== "admin" && user.role !== "librarian")  // keep librarian for legacy seed account
     return <Redirect to="/" />;
 
   return (
@@ -76,6 +77,7 @@ function Router() {
       <Route path="/admin/books">{() => <ProtectedRoute component={AdminBooksPage} adminOnly />}</Route>
       <Route path="/admin/users">{() => <ProtectedRoute component={AdminUsersPage} adminOnly />}</Route>
       <Route path="/admin/monitoring">{() => <ProtectedRoute component={AdminMonitoringPage} adminOnly />}</Route>
+      <Route path="/admin/reservations">{() => <ProtectedRoute component={AdminReservationsPage} adminOnly />}</Route>
       <Route component={NotFound} />
     </Switch>
   );

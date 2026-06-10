@@ -21,6 +21,8 @@ tags:
     description: Physical library borrow records
   - name: monitoring
     description: Admin monitoring
+  - name: reservations
+    description: Physical book reservations
 
 paths:
   /healthz:
@@ -417,6 +419,80 @@ paths:
               schema:
                 $ref: "#/components/schemas/BorrowRecord"
 
+  /reservations:
+    get:
+      operationId: listReservations
+      tags: [reservations]
+      summary: List reservations (admin sees all, user sees own)
+      responses:
+        "200":
+          description: Reservations list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reservation"
+
+    post:
+      operationId: createReservation
+      tags: [reservations]
+      summary: Reserve a physical copy of a book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReservationInput"
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: Bad request or duplicate
+
+  /reservations/{id}:
+    put:
+      operationId: updateReservation
+      tags: [reservations]
+      summary: Update reservation status (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReservationUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+
+    delete:
+      operationId: deleteReservation
+      tags: [reservations]
+      summary: Cancel a reservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Cancelled
+
   /monitoring/stats:
     get:
       operationId: getMonitoringStats
@@ -511,7 +587,7 @@ components:
           type: string
         role:
           type: string
-          enum: [admin, librarian, instructor, student]
+          enum: [admin, instructor, student]
         studentNumber:
           type: ["string", "null"]
         course:
@@ -789,6 +865,57 @@ components:
           type: string
         activeBorrows:
           type: integer
+
+    Reservation:
+      type: object
+      required: [id, userId, bookId, status, reservedAt, updatedAt, userName, userEmail, bookTitle, bookAuthor, bookCampus]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        bookId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, ready, fulfilled, cancelled]
+        notes:
+          type: ["string", "null"]
+        reservedAt:
+          type: string
+        updatedAt:
+          type: string
+        userName:
+          type: string
+        userEmail:
+          type: string
+        bookTitle:
+          type: string
+        bookAuthor:
+          type: string
+        bookCoverUrl:
+          type: ["string", "null"]
+        bookCampus:
+          type: string
+
+    ReservationInput:
+      type: object
+      required: [bookId]
+      properties:
+        bookId:
+          type: integer
+        notes:
+          type: ["string", "null"]
+
+    ReservationUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, ready, fulfilled, cancelled]
+        notes:
+          type: ["string", "null"]
 
     ActivityItem:
       type: object

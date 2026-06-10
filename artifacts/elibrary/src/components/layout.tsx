@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Home, Users, Settings, LogOut, Library, BookMarked, User as UserIcon, Menu, X } from "lucide-react";
+import { BookOpen, Home, Users, Settings, LogOut, Library, BookMarked, User as UserIcon, Menu, X, CalendarCheck } from "lucide-react";
 import { useLogout } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -44,10 +44,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const roleLabel = user?.role === "admin"
+  const roleLabel = user?.role === "admin" || user?.role === "librarian"
     ? "Administrator"
-    : user?.role === "librarian"
-    ? "Librarian"
     : user?.role === "instructor"
     ? "Instructor / Faculty"
     : "Student";
@@ -75,6 +73,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="mt-5 mb-2 px-4 text-xs font-bold tracking-wider text-muted-foreground uppercase">Management</div>
             <NavLink href="/admin/books" icon={BookOpen}>Manage Books</NavLink>
             <NavLink href="/admin/users" icon={Users}>Manage Users</NavLink>
+            <NavLink href="/admin/reservations" icon={CalendarCheck}>Reservations</NavLink>
             <NavLink href="/admin/monitoring" icon={Settings}>Monitoring</NavLink>
           </>
         )}
