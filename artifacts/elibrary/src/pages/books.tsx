@@ -15,10 +15,10 @@ function BookCard({ book, inMyList, onAdd }: { book: any; inMyList: boolean; onA
 
   return (
     <div
-      className="bg-card border rounded-xl overflow-hidden hover:shadow-lg transition-all group cursor-pointer"
+      className="bg-card border rounded-xl overflow-hidden hover:shadow-lg transition-all group cursor-pointer flex flex-col"
       onClick={() => setLocation(`/books/${book.id}`)}
     >
-      <div className="h-44 bg-muted flex items-center justify-center overflow-hidden relative">
+      <div className="h-44 bg-muted flex items-center justify-center overflow-hidden relative shrink-0">
         {book.coverUrl ? (
           <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         ) : (
@@ -34,11 +34,20 @@ function BookCard({ book, inMyList, onAdd }: { book: any; inMyList: boolean; onA
             <span className="text-xs font-semibold">Open Book</span>
           </div>
         </div>
+        {/* Availability chips — top-left */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {book.fileUrl && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600/90 text-white leading-tight">Digital</span>
+          )}
+          {book.isAvailablePhysical && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-600/90 text-white leading-tight">Physical</span>
+          )}
+        </div>
       </div>
-      <div className="p-3">
+      <div className="p-3 flex flex-col flex-1">
         <h3 className="font-semibold text-sm text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">{book.title}</h3>
         <p className="text-xs text-muted-foreground mt-1 mb-2">{book.author}</p>
-        <div className="flex items-center justify-between gap-2">
+        <div className="mt-auto flex items-center justify-between gap-2">
           <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full truncate">{book.category}</span>
           <Button
             size="sm"
@@ -53,7 +62,7 @@ function BookCard({ book, inMyList, onAdd }: { book: any; inMyList: boolean; onA
         </div>
         {book.isAvailablePhysical && (
           <p className="text-xs text-green-600 mt-1.5 font-medium">
-            Physical: {book.availableCopies}/{book.totalCopies} copies
+            {book.availableCopies}/{book.totalCopies} copies available
           </p>
         )}
       </div>

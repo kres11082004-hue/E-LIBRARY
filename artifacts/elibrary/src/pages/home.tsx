@@ -24,7 +24,7 @@ function BookCard({ book }: { book: any }) {
   return (
     <Link href={`/books/${book.id}`}>
       <div className="bg-card border rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer group">
-        <div className="h-40 bg-muted flex items-center justify-center overflow-hidden">
+        <div className="h-40 bg-muted flex items-center justify-center overflow-hidden relative">
           {book.coverUrl ? (
             <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           ) : (
@@ -33,11 +33,25 @@ function BookCard({ book }: { book: any }) {
               <span className="text-xs">{book.category}</span>
             </div>
           )}
+          {/* Availability chips */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {book.fileUrl && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600/90 text-white leading-tight">Digital</span>
+            )}
+            {book.isAvailablePhysical && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-600/90 text-white leading-tight">Physical</span>
+            )}
+          </div>
         </div>
         <div className="p-4">
           <p className="font-semibold text-sm text-foreground line-clamp-2 leading-snug">{book.title}</p>
           <p className="text-xs text-muted-foreground mt-1">{book.author}</p>
-          <span className="inline-block mt-2 text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">{book.category}</span>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">{book.category}</span>
+            {book.isAvailablePhysical && (
+              <span className="text-xs text-green-600 font-medium">{book.availableCopies}/{book.totalCopies} copies</span>
+            )}
+          </div>
         </div>
       </div>
     </Link>

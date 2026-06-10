@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useRegister, RegisterInputRole } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth-context";
+import { useRegister } from "@workspace/api-client-react";
+import type { RegisterInputRole } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLocation, Link } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Library, Eye, EyeOff, ChevronLeft } from "lucide-react";
@@ -18,18 +19,42 @@ const CAMPUSES = [
   "ZDSPGC-Ramon Magsaysay Campus",
   "ZDSPGC-Lapuyan Campus",
   "ZDSPGC-Pagadian Campus",
+  "ZDSPGC-Pitogo Campus",
+  "ZDSPGC-Kumalarang Campus",
+  "ZDSPGC-Bayog Campus",
+  "ZDSPGC-Tigbao Campus",
+  "ZDSPGC-Lakewood Campus",
+  "ZDSPGC-Vincenzo Sagun Campus",
+  "ZDSPGC-Aurora Campus",
+  "ZDSPGC-Josefina Campus",
+  "ZDSPGC-Tukuran Campus",
+  "ZDSPGC-Tambulig Campus",
+  "ZDSPGC-San Pablo Campus",
+  "ZDSPGC-Guipos Campus",
+  "ZDSPGC-Margosatubig Campus",
 ];
+
+// Associate courses are 1st–2nd year only
+const ASSOCIATE_COURSES = new Set([
+  "Associate in Computer Technology",
+]);
 
 const COURSES = [
   "Bachelor of Science in Computer Science",
   "Bachelor of Science in Information Technology",
+  "Bachelor of Science in Information System",
   "Bachelor of Science in Education",
   "Bachelor of Science in Nursing",
   "Bachelor of Science in Business Administration",
   "Bachelor of Science in Engineering",
+  "Bachelor of Physical Education",
   "Bachelor of Arts in Communication",
   "Bachelor of Science in Accountancy",
+  "Associate in Computer Technology",
 ];
+
+const YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+const ASSOCIATE_YEAR_OPTIONS = ["1st Year", "2nd Year"];
 
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
@@ -48,6 +73,18 @@ export default function RegisterPage() {
 
   const isStudent = form.role === "student";
   const totalSteps = isStudent ? 3 : 2;
+  const isAssociate = ASSOCIATE_COURSES.has(form.course);
+  const yearOptions = isAssociate ? ASSOCIATE_YEAR_OPTIONS : YEAR_OPTIONS;
+
+  const handleCourseChange = (v: string) => {
+    const newIsAssociate = ASSOCIATE_COURSES.has(v);
+    setForm(f => ({
+      ...f,
+      course: v,
+      // reset year if current year is invalid for the new course
+      year: newIsAssociate && (f.year === "3rd Year" || f.year === "4th Year") ? "" : f.year,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,16 +120,19 @@ export default function RegisterPage() {
           <Library className="w-7 h-7 text-primary" />
           <div>
             <p className="font-bold text-base text-primary leading-tight">ZDSPGC E-Library</p>
-            <p className="text-muted-foreground text-xs leading-tight">Zamboanga del Sur Provincial Government College</p>
+            <p className="text-xs text-muted-foreground leading-tight">Zamboanga del Sur Provincial Government College</p>
           </div>
         </div>
 
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground mb-1">Create your account</h1>
-          <p className="text-muted-foreground text-sm">Step {step} of {totalSteps}</p>
-          <div className="mt-3 flex gap-1">
+          <h1 className="text-2xl font-bold text-foreground">Create your account</h1>
+          <p className="text-muted-foreground text-sm mt-1">Step {step} of {totalSteps}</p>
+          <div className="flex gap-1 mt-3">
             {Array.from({ length: totalSteps }).map((_, i) => (
-              <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i < step ? "bg-primary" : "bg-muted"}`} />
+              <div
+                key={i}
+                className={`h-1 flex-1 rounded-full transition-colors ${i < step ? "bg-primary" : "bg-muted"}`}
+              />
             ))}
           </div>
         </div>
@@ -169,12 +209,15 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <Label>Course / Program</Label>
-                <Select value={form.course} onValueChange={(v) => setForm(f => ({ ...f, course: v }))}>
+                <Select value={form.course} onValueChange={handleCourseChange}>
                   <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
                   <SelectContent>
                     {COURSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                {isAssociate && (
+                  <p className="text-xs text-amber-600">Associate programs are 1st–2nd year only.</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -182,7 +225,7 @@ export default function RegisterPage() {
                   <Select value={form.year} onValueChange={(v) => setForm(f => ({ ...f, year: v }))}>
                     <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
                     <SelectContent>
-                      {["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"].map(y => (
+                      {yearOptions.map(y => (
                         <SelectItem key={y} value={y}>{y}</SelectItem>
                       ))}
                     </SelectContent>

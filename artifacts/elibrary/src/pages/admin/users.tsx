@@ -17,6 +17,19 @@ const CAMPUSES = [
   "ZDSPGC-Ramon Magsaysay Campus",
   "ZDSPGC-Lapuyan Campus",
   "ZDSPGC-Pagadian Campus",
+  "ZDSPGC-Pitogo Campus",
+  "ZDSPGC-Kumalarang Campus",
+  "ZDSPGC-Bayog Campus",
+  "ZDSPGC-Tigbao Campus",
+  "ZDSPGC-Lakewood Campus",
+  "ZDSPGC-Vincenzo Sagun Campus",
+  "ZDSPGC-Aurora Campus",
+  "ZDSPGC-Josefina Campus",
+  "ZDSPGC-Tukuran Campus",
+  "ZDSPGC-Tambulig Campus",
+  "ZDSPGC-San Pablo Campus",
+  "ZDSPGC-Guipos Campus",
+  "ZDSPGC-Margosatubig Campus",
 ];
 const ROLES = ["All", "student", "instructor", "librarian", "admin"];
 
