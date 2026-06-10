@@ -63,7 +63,7 @@ export default function RegisterPage() {
         },
       });
       login(result.token, result.user);
-      toast({ title: "Account created successfully! Welcome to Athenaeum." });
+      toast({ title: "Account created successfully! Welcome to ZDSPGC E-Library." });
       setLocation("/");
     } catch (err: any) {
       toast({ title: err?.data?.error || "Registration failed", variant: "destructive" });
@@ -75,7 +75,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-lg">
         <div className="flex items-center gap-3 mb-8">
           <Library className="w-7 h-7 text-primary" />
-          <span className="font-serif font-bold text-xl text-primary">Athenaeum</span>
+          <div>
+            <p className="font-bold text-base text-primary leading-tight">ZDSPGC E-Library</p>
+            <p className="text-muted-foreground text-xs leading-tight">Zamboanga del Sur Provincial Government College</p>
+          </div>
         </div>
 
         <div className="mb-6">

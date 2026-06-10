@@ -371,7 +371,7 @@ export default function AdminBooksPage() {
                   <div className="flex items-center gap-2 font-medium text-foreground">
                     <FileText className="w-4 h-4" /> Full Book Content
                   </div>
-                  <p>Paste or type the full text of the book here. Students and instructors will read it directly inside Athenaeum — no external site needed.</p>
+                  <p>Paste or type the full text of the book here. Students and instructors will read it directly inside ZDSPGC E-Library — no external site needed.</p>
                   <ul className="list-disc list-inside space-y-1 text-xs">
                     <li>Use <code className="bg-background px-1 rounded"># Chapter Title</code> for chapter headings</li>
                     <li>Use <code className="bg-background px-1 rounded">## Section</code> for sub-headings</li>

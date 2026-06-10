@@ -34,7 +34,10 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12">
         <div className="flex items-center gap-3">
           <Library className="w-8 h-8 text-primary-foreground" />
-          <span className="font-serif font-bold text-2xl text-primary-foreground tracking-tight">Athenaeum</span>
+          <div>
+            <p className="font-bold text-lg text-primary-foreground leading-tight">ZDSPGC E-Library</p>
+            <p className="text-primary-foreground/70 text-xs leading-tight">Zamboanga del Sur Provincial Government College</p>
+          </div>
         </div>
         <div>
           <blockquote className="text-primary-foreground/90 text-xl font-serif leading-relaxed italic">
@@ -43,7 +46,7 @@ export default function LoginPage() {
           <p className="mt-4 text-primary-foreground/60 text-sm">— Henry Ward Beecher</p>
         </div>
         <div className="text-primary-foreground/50 text-xs">
-          E-Library &amp; Physical Library Management System
+          Zamboanga del Sur Provincial Government College — E-Library System
         </div>
       </div>
 
@@ -52,7 +55,10 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <Library className="w-7 h-7 text-primary" />
-            <span className="font-serif font-bold text-xl text-primary">Athenaeum</span>
+            <div>
+              <p className="font-bold text-base text-primary leading-tight">ZDSPGC E-Library</p>
+              <p className="text-muted-foreground text-xs leading-tight">Zamboanga del Sur Provincial Government College</p>
+            </div>
           </div>
 
           <h1 className="text-2xl font-bold text-foreground mb-1">Welcome back</h1>

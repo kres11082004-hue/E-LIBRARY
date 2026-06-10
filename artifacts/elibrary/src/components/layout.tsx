@@ -55,9 +55,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <>
       {/* Logo */}
-      <div className="p-6 flex items-center gap-3 border-b shrink-0">
-        <Library className="w-8 h-8 text-primary shrink-0" />
-        <span className="font-serif font-bold text-xl text-primary tracking-tight">Athenaeum</span>
+      <div className="p-4 flex items-center gap-3 border-b shrink-0">
+        <Library className="w-7 h-7 text-primary shrink-0" />
+        <div className="min-w-0">
+          <p className="font-bold text-sm text-primary leading-tight">ZDSPGC</p>
+          <p className="text-xs text-primary/80 leading-tight">E-Library</p>
+        </div>
       </div>
 
       {/* Nav */}
@@ -111,7 +114,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b sticky top-0 z-30">
         <div className="flex items-center gap-2">
           <Library className="w-6 h-6 text-primary" />
-          <span className="font-serif font-bold text-lg text-primary">Athenaeum</span>
+          <div>
+            <p className="font-bold text-sm text-primary leading-tight">ZDSPGC E-Library</p>
+          </div>
         </div>
         <button
           onClick={() => setMobileOpen(o => !o)}
