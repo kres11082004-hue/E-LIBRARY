@@ -12,7 +12,16 @@ import { Plus, Pencil, Trash2, BookOpen, Search, FileText, BookText, CheckCircle
 import { useAuth } from "@/lib/auth-context";
 
 const CATEGORIES = ["Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
-const CAMPUSES = ["Main Campus", "North Campus", "South Campus", "East Campus", "West Campus", "Engineering Campus", "Medical Campus", "Business Campus"];
+const CAMPUSES = [
+  "ZDSPGC-Molave Campus",
+  "ZDSPGC-Dimataling Campus",
+  "ZDSPGC-Dumingag Campus",
+  "ZDSPGC-Mahayag Campus",
+  "ZDSPGC-Midsalip Campus",
+  "ZDSPGC-Ramon Magsaysay Campus",
+  "ZDSPGC-Lapuyan Campus",
+  "ZDSPGC-Pagadian Campus",
+];
 
 const emptyForm = {
   title: "", author: "", description: "", content: "", category: "Technology", campus: "Main Campus",

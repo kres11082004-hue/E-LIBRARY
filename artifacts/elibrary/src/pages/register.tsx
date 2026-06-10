@@ -10,8 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Library, Eye, EyeOff, ChevronLeft } from "lucide-react";
 
 const CAMPUSES = [
-  "Main Campus", "North Campus", "South Campus", "East Campus", "West Campus",
-  "Engineering Campus", "Medical Campus", "Business Campus",
+  "ZDSPGC-Molave Campus",
+  "ZDSPGC-Dimataling Campus",
+  "ZDSPGC-Dumingag Campus",
+  "ZDSPGC-Mahayag Campus",
+  "ZDSPGC-Midsalip Campus",
+  "ZDSPGC-Ramon Magsaysay Campus",
+  "ZDSPGC-Lapuyan Campus",
+  "ZDSPGC-Pagadian Campus",
 ];
 
 const COURSES = [

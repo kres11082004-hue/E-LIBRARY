@@ -7,7 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Search, CheckCircle, XCircle, Trash2, Users, Filter } from "lucide-react";
 
-const CAMPUSES = ["All", "Main Campus", "North Campus", "South Campus", "East Campus", "West Campus", "Engineering Campus", "Medical Campus", "Business Campus"];
+const CAMPUSES = [
+  "All",
+  "ZDSPGC-Molave Campus",
+  "ZDSPGC-Dimataling Campus",
+  "ZDSPGC-Dumingag Campus",
+  "ZDSPGC-Mahayag Campus",
+  "ZDSPGC-Midsalip Campus",
+  "ZDSPGC-Ramon Magsaysay Campus",
+  "ZDSPGC-Lapuyan Campus",
+  "ZDSPGC-Pagadian Campus",
+];
 const ROLES = ["All", "student", "instructor", "librarian", "admin"];
 
 const ROLE_COLORS: Record<string, string> = {
