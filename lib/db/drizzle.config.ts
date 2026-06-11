@@ -1,5 +1,12 @@
 import { defineConfig } from "drizzle-kit";
 import path from "path";
+import process from "process";
+
+try {
+  process.loadEnvFile(path.resolve(__dirname, "../../.env"));
+} catch (e) {
+  // ignore
+}
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL, ensure the database is provisioned");

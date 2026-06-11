@@ -1,11 +1,23 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import path from "path";
+import process from "process";
 
-const rawPort = process.env["PORT"];
+try {
+  process.loadEnvFile(path.resolve(import.meta.dirname, "../../.env"));
+} catch (e) {
+  try {
+    process.loadEnvFile(path.resolve(process.cwd(), ".env"));
+  } catch (e2) {
+    // ignore
+  }
+}
+
+const rawPort = process.env["PORT"] || process.env["API_PORT"];
 
 if (!rawPort) {
   throw new Error(
-    "PORT environment variable is required but was not provided.",
+    "PORT or API_PORT environment variable is required but was not provided.",
   );
 }
 
