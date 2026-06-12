@@ -109,10 +109,15 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background watermark overlay */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none select-none flex items-center justify-center">
+        <img src="/logo.jpg" alt="" className="w-[450px] h-[450px] object-contain" />
+      </div>
+
+      <div className="w-full max-w-lg z-10">
         <div className="flex items-center gap-3 mb-8">
-          <Library className="w-7 h-7 text-primary" />
+          <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-8 h-8 rounded-full bg-white p-0.5 object-cover shrink-0" />
           <div>
             <p className="font-bold text-base text-primary leading-tight">ZDSPGC E-Library</p>
             <p className="text-xs text-muted-foreground leading-tight">Zamboanga del Sur Provincial Government College</p>

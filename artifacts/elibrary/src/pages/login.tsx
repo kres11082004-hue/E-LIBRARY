@@ -29,32 +29,47 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex relative overflow-hidden">
       {/* Left Panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12">
-        <div className="flex items-center gap-3">
-          <Library className="w-8 h-8 text-primary-foreground" />
+      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col justify-between p-12">
+        {/* Background Logo Seal Watermark */}
+        <div className="absolute -right-12 -bottom-12 w-96 h-96 opacity-10 pointer-events-none select-none">
+          <img src="/logo.jpg" alt="" className="w-full h-full object-contain filter invert brightness-200" />
+        </div>
+
+        <div className="flex items-center gap-3 z-10">
+          <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-9 h-9 rounded-full bg-white p-0.5 object-cover shrink-0" />
           <div>
             <p className="font-bold text-lg text-primary-foreground leading-tight">ZDSPGC E-Library</p>
             <p className="text-primary-foreground/70 text-xs leading-tight">Zamboanga del Sur Provincial Government College</p>
           </div>
         </div>
-        <div>
-          <blockquote className="text-primary-foreground/90 text-xl font-serif leading-relaxed italic">
-            "A library is not a luxury but one of the necessities of life."
-          </blockquote>
-          <p className="mt-4 text-primary-foreground/60 text-sm">— Henry Ward Beecher</p>
+
+        <div className="flex flex-col items-center justify-center flex-1 my-8 z-10 text-center">
+          <div className="w-32 h-32 rounded-full bg-white p-1.5 shadow-xl hover:scale-105 transition-transform duration-300">
+            <img src="/logo.jpg" alt="ZDSPGC Seal" className="w-full h-full rounded-full object-cover" />
+          </div>
+          <h2 className="text-xl font-bold font-serif text-primary-foreground mt-5">Zamboanga del Sur Provincial Government College</h2>
+          <p className="text-primary-foreground/80 text-xs max-w-xs mt-2.5 leading-relaxed">
+            Empowering students and faculty through integrated digital academic collections and physical library resources.
+          </p>
         </div>
-        <div className="text-primary-foreground/50 text-xs">
+
+        <div className="text-primary-foreground/50 text-xs z-10">
           Zamboanga del Sur Provincial Government College — E-Library System
         </div>
       </div>
 
       {/* Right Panel */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 z-10 relative">
+        {/* Background watermark overlay for mobile */}
+        <div className="lg:hidden absolute inset-0 opacity-[0.03] pointer-events-none select-none flex items-center justify-center">
+          <img src="/logo.jpg" alt="" className="w-80 h-80 object-contain" />
+        </div>
+        
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <Library className="w-7 h-7 text-primary" />
+            <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-8 h-8 rounded-full bg-white p-0.5 object-cover shrink-0" />
             <div>
               <p className="font-bold text-base text-primary leading-tight">ZDSPGC E-Library</p>
               <p className="text-muted-foreground text-xs leading-tight">Zamboanga del Sur Provincial Government College</p>

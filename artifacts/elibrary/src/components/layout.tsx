@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Home, Users, Settings, LogOut, Library, BookMarked, User as UserIcon, Menu, X, CalendarCheck } from "lucide-react";
+import { BookOpen, Home, Users, Settings, LogOut, Library, BookMarked, User as UserIcon, Menu, X, CalendarCheck, Clock } from "lucide-react";
 import { useLogout } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -54,7 +54,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <>
       {/* Logo */}
       <div className="p-4 flex items-center gap-3 border-b shrink-0">
-        <Library className="w-7 h-7 text-primary shrink-0" />
+        <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-8 h-8 rounded-full object-cover shrink-0" />
         <div className="min-w-0">
           <p className="font-bold text-sm text-primary leading-tight">ZDSPGC</p>
           <p className="text-xs text-primary/80 leading-tight">E-Library</p>
@@ -67,6 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <NavLink href="/" icon={Home}>Dashboard</NavLink>
         <NavLink href="/books" icon={BookOpen}>Browse Books</NavLink>
         <NavLink href="/my-list" icon={BookMarked}>My Reading List</NavLink>
+        <NavLink href="/borrowed" icon={Clock}>Borrowed Books</NavLink>
 
         {isManager && (
           <>
@@ -112,7 +113,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile top bar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          <Library className="w-6 h-6 text-primary" />
+          <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-7 h-7 rounded-full object-cover shrink-0" />
           <div>
             <p className="font-bold text-sm text-primary leading-tight">ZDSPGC E-Library</p>
           </div>

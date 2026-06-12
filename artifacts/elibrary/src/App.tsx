@@ -11,6 +11,7 @@ import HomePage from "@/pages/home";
 import BooksPage from "@/pages/books";
 import BookDetailPage from "@/pages/book-detail";
 import MyListPage from "@/pages/my-list";
+import BorrowedPage from "@/pages/borrowed";
 import ProfilePage from "@/pages/profile";
 import AdminBooksPage from "@/pages/admin/books";
 import AdminUsersPage from "@/pages/admin/users";
@@ -73,6 +74,7 @@ function Router() {
       <Route path="/books/:id">{() => <ProtectedRoute component={BookDetailPage} />}</Route>
       <Route path="/books/:id/read">{() => <ProtectedRoute component={ReadPage} />}</Route>
       <Route path="/my-list">{() => <ProtectedRoute component={MyListPage} />}</Route>
+      <Route path="/borrowed">{() => <ProtectedRoute component={BorrowedPage} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
       <Route path="/admin/books">{() => <ProtectedRoute component={AdminBooksPage} adminOnly />}</Route>
       <Route path="/admin/users">{() => <ProtectedRoute component={AdminUsersPage} adminOnly />}</Route>
