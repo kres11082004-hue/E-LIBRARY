@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "@/lib/auth-context";
 import { useRegister } from "@workspace/api-client-react";
 import type { RegisterInputRole } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import { Library, Eye, EyeOff, ChevronLeft } from "lucide-react";
 
 const CAMPUSES = [
   "ZDSPGC-Aurora Campus",
-  "ZDSPGC-Bayog Campus",
   "ZDSPGC-Dimataling Campus",
   "ZDSPGC-Dumingag Campus",
   "ZDSPGC-Guipos Campus",
@@ -62,7 +60,6 @@ export default function RegisterPage() {
     fullname: "", email: "", password: "", phone: "", address: "", campus: "", role: "student",
     studentNumber: "", course: "", year: "", section: "",
   });
-  const { login } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const registerMutation = useRegister();
@@ -104,9 +101,8 @@ export default function RegisterPage() {
           section: isStudent ? form.section : undefined,
         },
       });
-      login(result.token, result.user);
-      toast({ title: "Account created successfully! Welcome to ZDSPGC E-Library." });
-      setLocation("/");
+      toast({ title: "Account created successfully!", description: "Please sign in with your email and password." });
+      setLocation("/login");
     } catch (err: any) {
       toast({ title: err?.data?.error || "Registration failed", variant: "destructive" });
     }

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Search, BookOpen, BookMarked, Filter, BookText } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { Search, BookOpen, BookMarked, Filter, BookText, Download, Plus } from "lucide-react";
 
 const CATEGORIES = ["All", "Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
 
@@ -47,24 +48,52 @@ function BookCard({ book, inMyList, onAdd }: { book: any; inMyList: boolean; onA
       <div className="p-3 flex flex-col flex-1">
         <h3 className="font-semibold text-sm text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">{book.title}</h3>
         <p className="text-xs text-muted-foreground mt-1 mb-2">{book.author}</p>
-        <div className="mt-auto flex items-center justify-between gap-2">
-          <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full truncate">{book.category}</span>
-          <Button
-            size="sm"
-            variant={inMyList ? "secondary" : "outline"}
-            className="shrink-0 h-7 text-xs gap-1"
-            onClick={(e) => { e.stopPropagation(); onAdd(e); }}
-            disabled={inMyList}
-          >
-            <BookMarked className="w-3 h-3" />
-            {inMyList ? "Saved" : "Save"}
-          </Button>
+        <div className="mt-auto space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full truncate">{book.category}</span>
+            <Button
+              size="sm"
+              variant={inMyList ? "secondary" : "outline"}
+              className="shrink-0 h-7 text-xs gap-1"
+              onClick={(e) => { e.stopPropagation(); onAdd(e); }}
+              disabled={inMyList}
+            >
+              <BookMarked className="w-3 h-3" />
+              {inMyList ? "Saved" : "Save"}
+            </Button>
+          </div>
+          {(book.fileUrl || book.content) && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-7 text-xs gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (book.fileUrl) {
+                  window.open(book.fileUrl, "_blank", "noopener,noreferrer");
+                } else if (book.content) {
+                  const blob = new Blob([book.content], { type: "text/markdown;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.setAttribute("download", `${book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }
+              }}
+            >
+              <Download className="w-3 h-3" />
+              Download
+            </Button>
+          )}
+          {book.isAvailablePhysical && (
+            <p className="text-xs text-green-600 font-medium">
+              {book.availableCopies}/{book.totalCopies} copies available
+            </p>
+          )}
         </div>
-        {book.isAvailablePhysical && (
-          <p className="text-xs text-green-600 mt-1.5 font-medium">
-            {book.availableCopies}/{book.totalCopies} copies available
-          </p>
-        )}
       </div>
     </div>
   );
@@ -74,6 +103,8 @@ export default function BooksPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
   const { data: books = [], isLoading } = useListBooks({
@@ -97,9 +128,16 @@ export default function BooksPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Browse Library</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">{books.length} books available — click any book to read</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Browse Library</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{books.length} books available — click any book to read</p>
+        </div>
+        {(user?.role === "admin" || user?.role === "librarian") && (
+          <Button onClick={() => setLocation("/admin/books")} className="gap-2">
+            <Plus className="w-4 h-4" /> Add Book
+          </Button>
+        )}
       </div>
 
       {/* Filters */}

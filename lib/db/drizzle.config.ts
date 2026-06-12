@@ -11,7 +11,8 @@ try {
     try {
       process.loadEnvFile("../../../.env");
     } catch (e3) {
-      console.error("Could not load env file from relative paths:", e.message, e2.message, e3.message);
+      const getMessage = (err: unknown) => err instanceof Error ? err.message : String(err);
+      console.error("Could not load env file from relative paths:", getMessage(e), getMessage(e2), getMessage(e3));
     }
   }
 }
