@@ -57,7 +57,6 @@ router.post("/auth/register", async (req, res) => {
 
   const passwordHash = hashPassword(password);
   const isAdmin = role === "admin";
-
   const [user] = await db.insert(usersTable).values({
     fullname,
     email,
@@ -70,7 +69,7 @@ router.post("/auth/register", async (req, res) => {
     course: course || null,
     year: year || null,
     section: section || null,
-    isApproved: isAdmin, // admins/librarians auto-approved, others need approval
+    isApproved: isAdmin, // admins auto-approved, others need approval
   }).returning();
 
   // Log activity

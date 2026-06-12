@@ -3,9 +3,17 @@ import path from "path";
 import process from "process";
 
 try {
-  process.loadEnvFile(path.resolve(__dirname, "../../.env"));
+  process.loadEnvFile("../../.env");
 } catch (e) {
-  // ignore
+  try {
+    process.loadEnvFile(".env");
+  } catch (e2) {
+    try {
+      process.loadEnvFile("../../../.env");
+    } catch (e3) {
+      console.error("Could not load env file from relative paths:", e.message, e2.message, e3.message);
+    }
+  }
 }
 
 if (!process.env.DATABASE_URL) {
@@ -13,9 +21,10 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default defineConfig({
-  schema: path.join(__dirname, "./src/schema/index.ts"),
+  schema: "./src/schema",
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
 });
+

@@ -11,27 +11,26 @@ import { useToast } from "@/hooks/use-toast";
 import { Library, Eye, EyeOff, ChevronLeft } from "lucide-react";
 
 const CAMPUSES = [
-  "ZDSPGC-Molave Campus",
+  "ZDSPGC-Aurora Campus",
+  "ZDSPGC-Bayog Campus",
   "ZDSPGC-Dimataling Campus",
   "ZDSPGC-Dumingag Campus",
-  "ZDSPGC-Mahayag Campus",
-  "ZDSPGC-Midsalip Campus",
-  "ZDSPGC-Ramon Magsaysay Campus",
-  "ZDSPGC-Lapuyan Campus",
-  "ZDSPGC-Pagadian Campus",
-  "ZDSPGC-Pitogo Campus",
-  "ZDSPGC-Kumalarang Campus",
-  "ZDSPGC-Bayog Campus",
-  "ZDSPGC-Tigbao Campus",
-  "ZDSPGC-Lakewood Campus",
-  "ZDSPGC-Vincenzo Sagun Campus",
-  "ZDSPGC-Aurora Campus",
-  "ZDSPGC-Josefina Campus",
-  "ZDSPGC-Tukuran Campus",
-  "ZDSPGC-Tambulig Campus",
-  "ZDSPGC-San Pablo Campus",
   "ZDSPGC-Guipos Campus",
+  "ZDSPGC-Josefina Campus",
+  "ZDSPGC-Kumalarang Campus",
+  "ZDSPGC-Lakewood Campus",
+  "ZDSPGC-Lapuyan Campus",
+  "ZDSPGC-Mahayag Campus",
   "ZDSPGC-Margosatubig Campus",
+  "ZDSPGC-Midsalip Campus",
+  "ZDSPGC-Molave Campus",
+  "ZDSPGC-Pagadian Campus",
+  "ZDSPGC-Ramon Magsaysay Campus",
+  "ZDSPGC-San Pablo Campus",
+  "ZDSPGC-Tambulig Campus",
+  "ZDSPGC-Tigbao Campus",
+  "ZDSPGC-Tukuran Campus",
+  "ZDSPGC-Vincenzo Sagun Campus",
 ];
 
 // Associate courses are 1st–2nd year only
@@ -157,7 +156,7 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <Label>Email Address</Label>
-                <Input type="email" value={form.email} onChange={set("email")} placeholder="juan@university.edu.ph" required />
+                <Input type="email" value={form.email} onChange={set("email")} placeholder="username@zdspgc.edu.ph" required />
               </div>
               <div className="space-y-2">
                 <Label>Password</Label>

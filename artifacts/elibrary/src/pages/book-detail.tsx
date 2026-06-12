@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import {
   BookOpen, ArrowLeft, BookMarked, BookmarkX, Calendar, Hash,
-  Building, BookText, Clock, CheckCircle, XCircle, CalendarCheck,
+  Building, BookText, Clock, CheckCircle, XCircle, CalendarCheck, Download,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
@@ -148,6 +148,30 @@ export default function BookDetailPage() {
               <BookText className="w-4 h-4" />
               {book.fileUrl ? "Read Now" : "Open Book"}
             </Button>
+
+            {(book.fileUrl || book.content) && (
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => {
+                  if (book.fileUrl) {
+                    window.open(book.fileUrl, "_blank", "noopener,noreferrer");
+                  } else if (book.content) {
+                    const blob = new Blob([book.content], { type: "text/markdown;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.setAttribute("download", `${book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                  }
+                }}
+              >
+                <Download className="w-4 h-4" /> Download Book
+              </Button>
+            )}
 
             <Button
               onClick={handleToggleList}

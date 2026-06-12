@@ -72,7 +72,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@institution.edu"
+                placeholder="username@zdspgc.edu.ph"
                 required
                 autoComplete="email"
               />
