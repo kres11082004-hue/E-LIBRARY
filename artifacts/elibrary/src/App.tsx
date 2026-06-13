@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { Layout } from "@/components/layout";
+import { OfflineBanner } from "@/components/offline-banner";
+import { PwaUpdatePrompt } from "@/components/pwa-update-prompt";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -90,11 +92,13 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <OfflineBanner />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
         </AuthProvider>
         <Toaster />
+        <PwaUpdatePrompt />
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Home, Users, Settings, LogOut, Library, BookMarked, User as UserIcon, Menu, X, CalendarCheck, Clock } from "lucide-react";
+import { BookOpen, Home, Users, Settings, LogOut, Library, BookMarked, User as UserIcon, Menu, X, CalendarCheck, Clock, Wifi, WifiOff } from "lucide-react";
 import { useLogout } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useState } from "react";
 
 function NavLink({ href, icon: Icon, children }: { href: string; icon: React.ElementType; children: React.ReactNode }) {
@@ -30,6 +31,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const logoutMutation = useLogout();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isOnline = useOnlineStatus();
 
   const isManager = user?.role === "admin" || user?.role === "librarian";
 
@@ -82,6 +84,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* User footer */}
       <div className="p-4 border-t shrink-0">
+        {/* Online/Offline indicator */}
+        <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md mb-3 text-xs font-medium ${
+          isOnline
+            ? "bg-green-500/10 text-green-600"
+            : "bg-amber-500/10 text-amber-600"
+        }`}>
+          {isOnline
+            ? <Wifi className="w-3 h-3 shrink-0" />
+            : <WifiOff className="w-3 h-3 shrink-0 animate-pulse" />
+          }
+          <span>{isOnline ? "Online" : "Offline — cached mode"}</span>
+        </div>
         <div className="flex items-center gap-3 mb-3 px-2">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
             {user?.fullname?.charAt(0)?.toUpperCase() || "U"}
