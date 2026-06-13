@@ -3,13 +3,22 @@ import { useGetMyList, useRemoveFromMyList, getGetMyListQueryKey } from "@worksp
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, BookMarked, Trash2, Globe, ExternalLink } from "lucide-react";
+import { BookOpen, BookMarked, Trash2, Download, CheckCircle, Smartphone } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getDownloadedBooks, removeDownloadedBook, DownloadedBook } from "@/lib/download-helper";
 
 export default function MyListPage() {
   const { data: myList = [], isLoading } = useGetMyList();
   const removeMutation = useRemoveFromMyList();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const [activeTab, setActiveTab] = useState<"saved" | "downloads">("saved");
+  const [downloaded, setDownloaded] = useState<DownloadedBook[]>([]);
+
+  useEffect(() => {
+    setDownloaded(getDownloadedBooks());
+  }, []);
 
   const handleRemove = async (bookId: number, title: string) => {
     try {
@@ -19,6 +28,12 @@ export default function MyListPage() {
     } catch {
       toast({ title: "Error removing book", variant: "destructive" });
     }
+  };
+
+  const handleRemoveDownload = (id: number, title: string) => {
+    removeDownloadedBook(id);
+    setDownloaded(getDownloadedBooks());
+    toast({ title: `"${title}" deleted from offline storage` });
   };
 
   if (isLoading) {
@@ -40,84 +55,210 @@ export default function MyListPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
+      {/* Title */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">My Reading List</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">{myList.length} saved {myList.length === 1 ? "book" : "books"}</p>
+        <h1 className="text-2xl font-bold text-foreground">My Library</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
+          Manage your saved books and locally downloaded copies.
+        </p>
       </div>
 
-      {myList.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <BookMarked className="w-14 h-14 text-muted-foreground/30 mb-4" />
-          <h2 className="font-semibold text-foreground">Your reading list is empty</h2>
-          <p className="text-muted-foreground text-sm mt-1">Browse the library and save books you want to read.</p>
-          <Link href="/books"><Button className="mt-6" variant="outline">Browse Library</Button></Link>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {myList.map((item) => (
-            <div key={item.id} className="bg-card border rounded-xl p-4 flex gap-4 hover:shadow-sm transition-shadow">
-              {/* Cover */}
-              <Link href={`/books/${item.bookId}`}>
-                <div className="w-14 h-20 bg-muted rounded-lg overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
-                  {item.book.coverUrl ? (
-                    <img src={item.book.coverUrl} alt={item.book.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <BookOpen className="w-6 h-6 text-muted-foreground/50" />
-                    </div>
-                  )}
-                </div>
-              </Link>
+      {/* Custom Tabs */}
+      <div className="flex border-b border-border gap-6">
+        <button
+          onClick={() => setActiveTab("saved")}
+          className={`pb-3 text-sm font-semibold relative transition-colors ${
+            activeTab === "saved"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Saved Reading List ({myList.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("downloads")}
+          className={`pb-3 text-sm font-semibold relative transition-colors ${
+            activeTab === "downloads"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Downloads / Offline ({downloaded.length})
+        </button>
+      </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
+      {/* Tabs Content */}
+      {activeTab === "saved" ? (
+        myList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <BookMarked className="w-14 h-14 text-muted-foreground/30 mb-4" />
+            <h2 className="font-semibold text-foreground">Your reading list is empty</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Browse the library and save books you want to read.
+            </p>
+            <Link href="/books">
+              <Button className="mt-6" variant="outline">
+                Browse Library
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {myList.map((item) => (
+              <div
+                key={item.id}
+                className="bg-card border rounded-xl p-4 flex gap-4 hover:shadow-sm transition-all"
+              >
+                {/* Cover */}
                 <Link href={`/books/${item.bookId}`}>
-                  <h3 className="font-semibold text-sm text-foreground hover:text-primary cursor-pointer line-clamp-2">{item.book.title}</h3>
+                  <div className="w-14 h-20 bg-muted rounded-lg overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                    {item.book.coverUrl ? (
+                      <img
+                        src={item.book.coverUrl}
+                        alt={item.book.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-6 h-6 text-muted-foreground/50" />
+                      </div>
+                    )}
+                  </div>
                 </Link>
-                <p className="text-xs text-muted-foreground mt-0.5">{item.book.author}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">{item.book.category}</span>
-                  <span className="text-xs text-muted-foreground">{item.book.campus}</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Saved on {new Date(item.addedAt).toLocaleDateString()}
-                </p>
-              </div>
 
-              {/* Actions */}
-              <div className="flex flex-col gap-2 shrink-0">
-                {item.book.fileUrl && (
-                  <a href={item.book.fileUrl} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" variant="outline" className="h-8 gap-1 text-xs">
-                      <Globe className="w-3 h-3" /> Read
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <Link href={`/books/${item.bookId}`}>
+                    <h3 className="font-semibold text-sm text-foreground hover:text-primary cursor-pointer line-clamp-2">
+                      {item.book.title}
+                    </h3>
+                  </Link>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {item.book.author}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">
+                      {item.book.category}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {item.book.campus}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col gap-2 shrink-0 justify-between items-end">
+                  <Link href={`/books/${item.bookId}/read`}>
+                    <Button size="sm" className="h-8 gap-1.5 text-xs">
+                      <BookOpen className="w-3.5 h-3.5" /> Read
                     </Button>
-                  </a>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleRemove(item.bookId, item.book.title)}
-                  disabled={removeMutation.isPending}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
+                  </Link>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleRemove(item.bookId, item.book.title)}
+                    disabled={removeMutation.isPending}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
+      ) : (
+        /* Downloads Tab */
+        downloaded.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Download className="w-14 h-14 text-muted-foreground/30 mb-4" />
+            <h2 className="font-semibold text-foreground">No offline downloads yet</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Download books from the library catalog to read them offline.
+            </p>
+            <Link href="/books">
+              <Button className="mt-6" variant="outline">
+                Browse Library
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {downloaded.map((item) => (
+              <div
+                key={item.id}
+                className="bg-card border rounded-xl p-4 flex gap-4 hover:shadow-sm transition-all"
+              >
+                {/* Cover */}
+                <Link href={`/books/${item.id}`}>
+                  <div className="w-14 h-20 bg-muted rounded-lg overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                    {item.coverUrl ? (
+                      <img
+                        src={item.coverUrl}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-6 h-6 text-muted-foreground/50" />
+                      </div>
+                    )}
+                  </div>
+                </Link>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <Link href={`/books/${item.id}`}>
+                    <h3 className="font-semibold text-sm text-foreground hover:text-primary cursor-pointer line-clamp-2">
+                      {item.title}
+                    </h3>
+                  </Link>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {item.author}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">
+                      {item.category}
+                    </span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3 text-green-600" /> Saved Locally
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col gap-2 shrink-0 justify-between items-end">
+                  <Link href={`/books/${item.id}/read`}>
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+                      <Smartphone className="w-3.5 h-3.5 text-green-600 animate-pulse" /> Read Offline
+                    </Button>
+                  </Link>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleRemoveDownload(item.id, item.title)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
 
-      {/* Offline hint */}
-      {myList.length > 0 && (
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-          <p className="text-sm text-foreground font-medium">Offline Access</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Your saved books are stored locally. Book metadata will be available even when offline.
-            Click "Read" to open books with a working internet connection.
+      {/* Device Info */}
+      <div className="bg-muted/50 border rounded-xl p-4 flex gap-3 items-start">
+        <Smartphone className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+        <div>
+          <p className="text-xs text-foreground font-semibold">Offline Access Details</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+            All downloads on this screen are saved in your browser&apos;s local storage. 
+            You can read downloaded books at any time even if your internet connection is disconnected.
           </p>
         </div>
-      )}
+      </div>
     </div>
   );
 }

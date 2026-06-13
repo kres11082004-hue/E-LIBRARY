@@ -18,6 +18,7 @@ import {
   BookOpen, ArrowLeft, BookMarked, BookmarkX, Calendar, Hash,
   Building, BookText, Clock, CheckCircle, XCircle, CalendarCheck, Download,
 } from "lucide-react";
+import { triggerBookDownload } from "@/lib/download-helper";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
   pending:   { label: "Reservation Pending",    color: "text-amber-700 bg-amber-50 border-amber-200",   Icon: Clock },
@@ -149,29 +150,16 @@ export default function BookDetailPage() {
               {book.fileUrl ? "Read Now" : "Open Book"}
             </Button>
 
-            {(book.fileUrl || book.content) && (
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={() => {
-                  if (book.fileUrl) {
-                    window.open(book.fileUrl, "_blank", "noopener,noreferrer");
-                  } else if (book.content) {
-                    const blob = new Blob([book.content], { type: "text/markdown;charset=utf-8;" });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.href = url;
-                    link.setAttribute("download", `${book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                  }
-                }}
-              >
-                <Download className="w-4 h-4" /> Download Book
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => {
+                triggerBookDownload(book);
+                toast({ title: `"${book.title}" download started` });
+              }}
+            >
+              <Download className="w-4 h-4" /> Download Book
+            </Button>
 
             <Button
               onClick={handleToggleList}

@@ -8,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { Search, BookOpen, BookMarked, Filter, BookText, Download, Plus } from "lucide-react";
+import { triggerBookDownload } from "@/lib/download-helper";
 
 const CATEGORIES = ["All", "Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
 
 function BookCard({ book, inMyList, onAdd }: { book: any; inMyList: boolean; onAdd: (e: React.MouseEvent) => void }) {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   return (
     <div
@@ -62,32 +64,19 @@ function BookCard({ book, inMyList, onAdd }: { book: any; inMyList: boolean; onA
               {inMyList ? "Saved" : "Save"}
             </Button>
           </div>
-          {(book.fileUrl || book.content) && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full h-7 text-xs gap-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (book.fileUrl) {
-                  window.open(book.fileUrl, "_blank", "noopener,noreferrer");
-                } else if (book.content) {
-                  const blob = new Blob([book.content], { type: "text/markdown;charset=utf-8;" });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.href = url;
-                  link.setAttribute("download", `${book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`);
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-                }
-              }}
-            >
-              <Download className="w-3 h-3" />
-              Download
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full h-7 text-xs gap-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              triggerBookDownload(book);
+              toast({ title: `"${book.title}" download started` });
+            }}
+          >
+            <Download className="w-3 h-3" />
+            Download
+          </Button>
           {book.isAvailablePhysical && (
             <p className="text-xs text-green-600 font-medium">
               {book.availableCopies}/{book.totalCopies} copies available
