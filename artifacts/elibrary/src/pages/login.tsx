@@ -22,7 +22,8 @@ export default function LoginPage() {
     try {
       const result = await loginMutation.mutateAsync({ data: { email, password } });
       login(result.token, result.user);
-      setLocation("/");
+      const isManager = result.user.role === "admin" || result.user.role === "librarian";
+      setLocation(isManager ? "/admin/books" : "/");
     } catch {
       toast({ title: "Invalid email or password", variant: "destructive" });
     }

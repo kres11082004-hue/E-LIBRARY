@@ -62,7 +62,10 @@ function ProtectedRoute({
 function PublicRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
-  if (user) return <Redirect to="/" />;
+  if (user) {
+    const isManager = user.role === "admin" || user.role === "librarian";
+    return <Redirect to={isManager ? "/admin/books" : "/"} />;
+  }
   return <Component />;
 }
 
@@ -71,7 +74,12 @@ function Router() {
     <Switch>
       <Route path="/login">{() => <PublicRoute component={LoginPage} />}</Route>
       <Route path="/register">{() => <PublicRoute component={RegisterPage} />}</Route>
-      <Route path="/">{() => <ProtectedRoute component={HomePage} />}</Route>
+      <Route path="/">{() => {
+        const { user } = useAuth();
+        const isManager = user?.role === "admin" || user?.role === "librarian";
+        if (isManager) return <Redirect to="/admin/books" />;
+        return <ProtectedRoute component={HomePage} />;
+      }}</Route>
       <Route path="/books">{() => <ProtectedRoute component={BooksPage} />}</Route>
       <Route path="/books/:id">{() => <ProtectedRoute component={BookDetailPage} />}</Route>
       <Route path="/books/:id/read">{() => <ProtectedRoute component={ReadPage} />}</Route>
