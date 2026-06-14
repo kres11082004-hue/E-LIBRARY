@@ -147,7 +147,7 @@ export default function RegisterPage() {
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
                     <SelectItem value="instructor">Instructor / Faculty</SelectItem>
-                    <SelectItem value="admin">Librarian</SelectItem>
+                    <SelectItem value="admin">Admin/Librarian</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

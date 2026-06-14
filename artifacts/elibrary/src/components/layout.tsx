@@ -47,7 +47,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const roleLabel = user?.role === "admin" || user?.role === "librarian"
-    ? "Librarian"
+    ? "Admin/Librarian"
     : user?.role === "instructor"
     ? "Instructor / Faculty"
     : "Student";

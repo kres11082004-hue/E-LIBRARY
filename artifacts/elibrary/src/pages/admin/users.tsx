@@ -102,10 +102,10 @@ export default function AdminUsersPage() {
             <SelectContent>
               {ROLES.map(r => {
                 let display = r === "All" ? "All Roles" : r;
-                if (r === "admin") display = "Librarian";
-                if (r === "librarian") display = "Librarian (Legacy)";
+                if (r === "admin") display = "Admin/Librarian";
+                if (r === "librarian") display = "Admin/Librarian (Legacy)";
                 return (
-                  <SelectItem key={r} value={r} className="capitalize">
+                  <SelectItem key={r} value={r}>
                     {display}
                   </SelectItem>
                 );
@@ -152,8 +152,8 @@ export default function AdminUsersPage() {
                     </div>
                   </td>
                   <td className="p-4 hidden md:table-cell">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${ROLE_COLORS[user.role] || "bg-secondary text-secondary-foreground"}`}>
-                      {user.role === "admin" ? "librarian" : user.role}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[user.role] || "bg-secondary text-secondary-foreground"}`}>
+                      {user.role === "admin" || user.role === "librarian" ? "Admin/Librarian" : user.role}
                     </span>
                   </td>
                   <td className="p-4 hidden lg:table-cell text-sm text-muted-foreground">{user.campus}</td>

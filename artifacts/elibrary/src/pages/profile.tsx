@@ -48,8 +48,8 @@ export default function ProfilePage() {
   };
 
   const roleLabel: Record<string, string> = {
-    admin: "Librarian",
-    librarian: "Librarian",
+    admin: "Admin/Librarian",
+    librarian: "Admin/Librarian",
     instructor: "Instructor / Faculty",
     student: "Student",
   };
