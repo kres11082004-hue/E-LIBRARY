@@ -47,7 +47,11 @@ router.post("/auth/register", async (req, res) => {
   const { fullname, email, password, phone, address, campus, role, studentNumber, course, year, section, photoUrl } = req.body;
 
   if (!fullname || !email || !password || !phone || !address || !campus || !role || !photoUrl) {
-    return res.status(400).json({ error: "All required fields must be provided" });
+    return res.status(400).json({ error: "All required fields must be provided (including profile photo)" });
+  }
+
+  if (role === "student" && (!studentNumber || !course || !year || !section)) {
+    return res.status(400).json({ error: "Student number, course, year, and section are required for students" });
   }
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));

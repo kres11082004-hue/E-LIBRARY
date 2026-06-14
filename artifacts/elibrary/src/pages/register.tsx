@@ -106,7 +106,12 @@ export default function RegisterPage() {
       toast({ title: "Account created successfully!", description: "Please sign in with your email and password." });
       setLocation("/login");
     } catch (err: any) {
-      toast({ title: err?.data?.error || "Registration failed", variant: "destructive" });
+      const msg =
+        err?.data?.error ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Registration failed. Please check all fields and try again.";
+      toast({ title: msg, variant: "destructive" });
     }
   };
 
