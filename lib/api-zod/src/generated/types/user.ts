@@ -15,6 +15,8 @@ export interface User {
   campus: string;
   role: string;
   /** @nullable */
+  photoUrl?: string | null;
+  /** @nullable */
   studentNumber?: string | null;
   /** @nullable */
   course?: string | null;

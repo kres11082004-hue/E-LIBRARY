@@ -31,6 +31,7 @@ export interface RegisterInput {
   address: string;
   campus: string;
   role: RegisterInputRole;
+  photoUrl: string;
   /** @nullable */
   studentNumber?: string | null;
   /** @nullable */
@@ -49,6 +50,8 @@ export interface User {
   address: string;
   campus: string;
   role: string;
+  /** @nullable */
+  photoUrl?: string | null;
   /** @nullable */
   studentNumber?: string | null;
   /** @nullable */

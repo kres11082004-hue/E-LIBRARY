@@ -44,9 +44,9 @@ router.post("/auth/login", async (req, res) => {
 
 // POST /auth/register
 router.post("/auth/register", async (req, res) => {
-  const { fullname, email, password, phone, address, campus, role, studentNumber, course, year, section } = req.body;
+  const { fullname, email, password, phone, address, campus, role, studentNumber, course, year, section, photoUrl } = req.body;
 
-  if (!fullname || !email || !password || !phone || !address || !campus || !role) {
+  if (!fullname || !email || !password || !phone || !address || !campus || !role || !photoUrl) {
     return res.status(400).json({ error: "All required fields must be provided" });
   }
 
@@ -65,6 +65,7 @@ router.post("/auth/register", async (req, res) => {
     address,
     campus,
     role,
+    photoUrl,
     studentNumber: studentNumber || null,
     course: course || null,
     year: year || null,

@@ -15,6 +15,7 @@ export const usersTable = pgTable("users", {
   course: text("course"),
   year: text("year"),
   section: text("section"),
+  photoUrl: text("photo_url"),
   isApproved: boolean("is_approved").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

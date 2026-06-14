@@ -97,9 +97,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <span>{isOnline ? "Online" : "Offline — cached mode"}</span>
         </div>
         <div className="flex items-center gap-3 mb-3 px-2">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-            {user?.fullname?.charAt(0)?.toUpperCase() || "U"}
-          </div>
+          {user?.photoUrl ? (
+            <div className="w-9 h-9 rounded-full border overflow-hidden shrink-0">
+              <img src={user.photoUrl} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+              {user?.fullname?.charAt(0)?.toUpperCase() || "U"}
+            </div>
+          )}
           <div className="flex flex-col min-w-0">
             <span className="text-sm font-semibold truncate">{user?.fullname}</span>
             <span className="text-xs text-muted-foreground">{roleLabel}</span>

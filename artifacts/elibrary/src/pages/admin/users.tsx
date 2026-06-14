@@ -142,9 +142,15 @@ export default function AdminUsersPage() {
                 <tr key={user.id} className="hover:bg-muted/20 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
-                        {user.fullname.charAt(0)}
-                      </div>
+                      {user.photoUrl ? (
+                        <div className="w-9 h-9 rounded-full border overflow-hidden shrink-0">
+                          <img src={user.photoUrl} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
+                          {user.fullname.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <p className="font-medium text-sm text-foreground">{user.fullname}</p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>

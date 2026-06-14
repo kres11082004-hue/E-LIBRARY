@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useLocation, Link } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Library, Eye, EyeOff, ChevronLeft } from "lucide-react";
+import { Library, Eye, EyeOff, ChevronLeft, User } from "lucide-react";
 
 const CAMPUSES = [
   "ZDSPGC-Aurora Campus",
@@ -58,6 +58,7 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [form, setForm] = useState({
     fullname: "", email: "", password: "", phone: "", address: "", campus: "", role: "student",
+    photoUrl: "",
     studentNumber: "", course: "", year: "", section: "",
   });
   const [, setLocation] = useLocation();
@@ -95,6 +96,7 @@ export default function RegisterPage() {
           address: form.address,
           campus: form.campus,
           role: form.role as RegisterInputRole,
+          photoUrl: form.photoUrl,
           studentNumber: isStudent ? form.studentNumber : undefined,
           course: isStudent ? form.course : undefined,
           year: isStudent ? form.year : undefined,
@@ -198,6 +200,36 @@ export default function RegisterPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Profile Photo *</Label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    {form.photoUrl ? (
+                      <img src={form.photoUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-8 h-8 text-muted-foreground/50" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setForm(f => ({ ...f, photoUrl: reader.result as string }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      required={!form.photoUrl}
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">Provide a clear portrait photo</p>
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
@@ -245,7 +277,7 @@ export default function RegisterPage() {
                 <ChevronLeft className="w-4 h-4" /> Back
               </Button>
             )}
-            <Button type="submit" className="flex-1" disabled={registerMutation.isPending || (step === 2 && !form.campus)}>
+            <Button type="submit" className="flex-1" disabled={registerMutation.isPending || (step === 2 && (!form.campus || !form.photoUrl))}>
               {step < totalSteps ? "Continue" : registerMutation.isPending ? "Creating account..." : "Create Account"}
             </Button>
           </div>

@@ -571,7 +571,7 @@ components:
 
     RegisterInput:
       type: object
-      required: [fullname, email, password, phone, address, campus, role]
+      required: [fullname, email, password, phone, address, campus, role, photoUrl]
       properties:
         fullname:
           type: string
@@ -588,6 +588,8 @@ components:
         role:
           type: string
           enum: [admin, instructor, student]
+        photoUrl:
+          type: string
         studentNumber:
           type: ["string", "null"]
         course:
@@ -624,6 +626,8 @@ components:
           type: string
         role:
           type: string
+        photoUrl:
+          type: ["string", "null"]
         studentNumber:
           type: ["string", "null"]
         course:

@@ -60,9 +60,15 @@ export default function ProfilePage() {
 
       {/* Avatar + Name */}
       <div className="bg-card border rounded-xl p-6 flex items-center gap-5">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold shrink-0">
-          {user.fullname.charAt(0).toUpperCase()}
-        </div>
+        {user.photoUrl ? (
+          <div className="w-16 h-16 rounded-full border overflow-hidden shrink-0">
+            <img src={user.photoUrl} alt={user.fullname} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold shrink-0">
+            {user.fullname.charAt(0).toUpperCase()}
+          </div>
+        )}
         <div>
           <h2 className="text-lg font-bold text-foreground">{user.fullname}</h2>
           <p className="text-sm text-muted-foreground">{roleLabel[user.role] || user.role}</p>
