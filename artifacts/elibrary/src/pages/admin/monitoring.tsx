@@ -84,7 +84,6 @@ export default function AdminMonitoringPage() {
           <h1 className="text-2xl font-bold text-foreground">Library Monitoring</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Physical library and user activity overview</p>
         </div>
-        <Button onClick={() => setShowBorrowDialog(true)} className="gap-2"><Plus className="w-4 h-4" /> Check Out Book</Button>
       </div>
 
       {/* Stats */}
