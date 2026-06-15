@@ -127,3 +127,30 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@media print {
+  /* Hide sidebar, mobile nav, and top bar when printing */
+  aside,
+  nav.md\:hidden,
+  .md\:hidden.sticky,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Remove sidebar margin so content fills full width */
+  main {
+    margin-left: 0 !important;
+  }
+
+  /* Reset background colors for clean printing */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4 portrait;
+  }
+}
+

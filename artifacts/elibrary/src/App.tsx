@@ -19,6 +19,7 @@ import AdminBooksPage from "@/pages/admin/books";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminMonitoringPage from "@/pages/admin/monitoring";
 import AdminReservationsPage from "@/pages/admin/reservations";
+import AdminReportsPage from "@/pages/admin/reports";
 import ReadPage from "@/pages/read";
 
 const queryClient = new QueryClient({
@@ -90,6 +91,7 @@ function Router() {
       <Route path="/admin/users">{() => <ProtectedRoute component={AdminUsersPage} adminOnly />}</Route>
       <Route path="/admin/monitoring">{() => <ProtectedRoute component={AdminMonitoringPage} adminOnly />}</Route>
       <Route path="/admin/reservations">{() => <ProtectedRoute component={AdminReservationsPage} adminOnly />}</Route>
+      <Route path="/admin/reports">{() => <ProtectedRoute component={AdminReportsPage} adminOnly />}</Route>
       <Route component={NotFound} />
     </Switch>
   );

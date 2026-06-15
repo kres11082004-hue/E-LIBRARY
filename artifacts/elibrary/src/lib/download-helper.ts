@@ -79,7 +79,36 @@ export function triggerBookDownload(book: {
   publishedYear?: number | null;
 }) {
   if (book.fileUrl) {
-    window.open(book.fileUrl, "_blank", "noopener,noreferrer");
+    // Attempt to fetch and download the original file directly
+    fetch(book.fileUrl)
+      .then(response => {
+        if (!response.ok) throw new Error("Network response was not ok");
+        return response.blob();
+      })
+      .then(blob => {
+        // Create an object URL from the blob
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        
+        // Extract filename from URL or fallback to book title
+        let filename = book.fileUrl?.split('/').pop();
+        if (!filename || filename.indexOf('.') === -1) {
+          filename = `${book.title.replace(/[^a-z0-9]/gi, "_")}.pdf`;
+        }
+        
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error("Direct download failed, falling back to opening in new tab:", error);
+        window.open(book.fileUrl as string, "_blank", "noopener,noreferrer");
+      });
   } else {
     const mainContent = book.content || (
       `# ${book.title}\n` +

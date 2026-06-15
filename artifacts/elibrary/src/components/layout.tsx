@@ -67,13 +67,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <nav className="flex-1 p-4 flex flex-col gap-1 overflow-y-auto">
         {isManager ? (
           <>
-            <p className="px-4 mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">Management</p>
+            <p className="px-4 mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">Dashboard</p>
+            <NavLink href="/" icon={Home}>Dashboard</NavLink>
+
+            <div className="mt-5 mb-2 px-4 text-xs font-bold tracking-wider text-muted-foreground uppercase">Management</div>
             <NavLink href="/admin/books" icon={BookOpen}>Manage Books</NavLink>
             <NavLink href="/admin/users" icon={Users}>Manage Users</NavLink>
             <NavLink href="/admin/reservations" icon={CalendarCheck}>Reservations</NavLink>
 
             <div className="mt-5 mb-2 px-4 text-xs font-bold tracking-wider text-muted-foreground uppercase">Monitoring</div>
             <NavLink href="/admin/monitoring" icon={Settings}>Library Monitoring</NavLink>
+            <NavLink href="/admin/reports" icon={Library}>Reports</NavLink>
           </>
         ) : (
           <>

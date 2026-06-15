@@ -22,8 +22,7 @@ export default function LoginPage() {
     try {
       const result = await loginMutation.mutateAsync({ data: { email, password } });
       login(result.token, result.user);
-      const isManager = result.user.role === "admin" || result.user.role === "librarian";
-      setLocation(isManager ? "/admin/books" : "/");
+      setLocation("/");
     } catch {
       toast({ title: "Invalid email or password", variant: "destructive" });
     }
@@ -67,7 +66,7 @@ export default function LoginPage() {
         <div className="lg:hidden absolute inset-0 opacity-[0.03] pointer-events-none select-none flex items-center justify-center">
           <img src="/logo.jpg" alt="" className="w-80 h-80 object-contain" />
         </div>
-        
+
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-8 h-8 rounded-full bg-white p-0.5 object-cover shrink-0" />
