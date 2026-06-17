@@ -1,4 +1,4 @@
-import { useListReservations, useUpdateReservation, useDeleteReservation, getListReservationsQueryKey, useCreateBorrowRecord } from "@workspace/api-client-react";
+import { useListReservations, useUpdateReservation, useDeleteReservation, getListReservationsQueryKey, useCreateBorrowRecord, getListBooksQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,7 @@ export default function AdminReservationsPage() {
       await updateMutation.mutateAsync({ id: r.id, data: { status: nextStatus } });
       toast({ title: `Reservation marked as "${nextStatus}"` });
       queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListBooksQueryKey() });
     } catch {
       toast({ title: "Failed to update", variant: "destructive" });
     }
@@ -88,6 +89,7 @@ export default function AdminReservationsPage() {
       await updateMutation.mutateAsync({ id: fulfillingReservation.id, data: { status: "fulfilled" } });
       toast({ title: "Reservation fulfilled and book checked out!" });
       queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListBooksQueryKey() });
       setFulfillingReservation(null);
     } catch (err: any) {
       toast({ title: err?.data?.error || "Failed to fulfill reservation", variant: "destructive" });

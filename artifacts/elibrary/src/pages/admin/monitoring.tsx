@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGetMonitoringStats, useGetMonitoringByCampus, useGetMonitoringByCourse, useGetRecentActivity, useListBorrowRecords, useCreateBorrowRecord, useUpdateBorrowRecord, useListUsers, getListBorrowRecordsQueryKey, getGetMonitoringStatsQueryKey } from "@workspace/api-client-react";
+import { useGetMonitoringStats, useGetMonitoringByCampus, useGetMonitoringByCourse, useGetRecentActivity, useListBorrowRecords, useCreateBorrowRecord, useUpdateBorrowRecord, useListUsers, getListBorrowRecordsQueryKey, getGetMonitoringStatsQueryKey, getListBooksQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,7 @@ export default function AdminMonitoringPage() {
       });
       queryClient.invalidateQueries({ queryKey: getListBorrowRecordsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetMonitoringStatsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListBooksQueryKey() });
       toast({ title: "Borrow record created" });
       setShowBorrowDialog(false);
       setBorrowForm({ userId: "", bookId: "", dueDate: "" });
@@ -71,6 +72,7 @@ export default function AdminMonitoringPage() {
       });
       queryClient.invalidateQueries({ queryKey: getListBorrowRecordsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetMonitoringStatsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListBooksQueryKey() });
       toast({ title: "Book returned successfully" });
     } catch { toast({ title: "Failed to update", variant: "destructive" }); }
   };
