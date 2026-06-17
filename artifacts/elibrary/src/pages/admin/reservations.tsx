@@ -31,7 +31,7 @@ const NEXT_STATUS: Partial<Record<ReservationStatus, ReservationStatus>> = {
 
 const NEXT_LABEL: Partial<Record<ReservationStatus, string>> = {
   pending: "Mark Ready",
-  ready:   "Confirm",
+  ready:   "Mark Fulfilled",
   fulfilled: "Mark Returned",
 };
 
@@ -58,23 +58,10 @@ export default function AdminReservationsPage() {
 
   const handleAdvance = async (r: any, nextStatus: ReservationStatus) => {
     if (nextStatus === "fulfilled") {
-      try {
-        const nextWeek = new Date();
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        
-        await createBorrowMutation.mutateAsync({
-          data: {
-            userId: r.userId,
-            bookId: r.bookId,
-            dueDate: nextWeek.toISOString(),
-          },
-        });
-        await updateMutation.mutateAsync({ id: r.id, data: { status: "fulfilled" } });
-        toast({ title: "Reservation confirmed and book checked out!" });
-        queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
-      } catch (err: any) {
-        toast({ title: err?.data?.error || "Failed to confirm reservation", variant: "destructive" });
-      }
+      setFulfillingReservation(r);
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      setDueDate(nextWeek.toISOString().split("T")[0]);
       return;
     }
 
@@ -84,6 +71,26 @@ export default function AdminReservationsPage() {
       queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
     } catch {
       toast({ title: "Failed to update", variant: "destructive" });
+    }
+  };
+
+  const handleFulfill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fulfillingReservation || !dueDate) return;
+    try {
+      await createBorrowMutation.mutateAsync({
+        data: {
+          userId: fulfillingReservation.userId,
+          bookId: fulfillingReservation.bookId,
+          dueDate: new Date(dueDate).toISOString(),
+        },
+      });
+      await updateMutation.mutateAsync({ id: fulfillingReservation.id, data: { status: "fulfilled" } });
+      toast({ title: "Reservation fulfilled and book checked out!" });
+      queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+      setFulfillingReservation(null);
+    } catch (err: any) {
+      toast({ title: err?.data?.error || "Failed to fulfill reservation", variant: "destructive" });
     }
   };
 
@@ -245,6 +252,33 @@ export default function AdminReservationsPage() {
         </div>
       )}
 
+      {/* Fulfill Reservation Dialog */}
+      <Dialog open={!!fulfillingReservation} onOpenChange={(open) => !open && setFulfillingReservation(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Return Due Date</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFulfill} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Due Date for {fulfillingReservation?.bookTitle}</Label>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                required
+                min={new Date().toISOString().split("T")[0]}
+              />
+              <p className="text-xs text-muted-foreground">Select when the student should return the book.</p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setFulfillingReservation(null)}>Cancel</Button>
+              <Button type="submit" disabled={createBorrowMutation.isPending || updateMutation.isPending}>
+                {(createBorrowMutation.isPending || updateMutation.isPending) ? "Processing..." : "Confirm & Check Out"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
