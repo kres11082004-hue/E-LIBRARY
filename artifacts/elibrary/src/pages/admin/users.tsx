@@ -31,7 +31,7 @@ const CAMPUSES = [
   "ZDSPGC-Tukuran Campus",
   "ZDSPGC-Vincenzo Sagun Campus",
 ];
-const ROLES = ["All", "student", "instructor", "admin"];
+const ROLES = ["All", "student", "instructor"];
 
 const ROLE_COLORS: Record<string, string> = {
   admin: "bg-purple-100 text-purple-700",
@@ -56,7 +56,9 @@ export default function AdminUsersPage() {
   const deleteMutation = useDeleteUser();
 
   const filtered = users.filter(u =>
-    !search || u.fullname.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
+    // Hide admin and librarian accounts from the user management list
+    u.role !== "admin" && u.role !== "librarian" &&
+    (!search || u.fullname.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleApprove = async (id: number, current: boolean) => {
