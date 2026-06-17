@@ -230,13 +230,9 @@ export default function AdminBooksPage() {
                     <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">{book.category}</span>
                   </td>
                   <td className="p-4 hidden lg:table-cell text-center">
-                    {book.content ? (
+                    {book.content || book.fileUrl ? (
                       <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Uploaded
-                      </span>
-                    ) : book.isAvailablePhysical ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium">
-                        <Circle className="w-3.5 h-3.5" /> Physical Only
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -248,7 +244,7 @@ export default function AdminBooksPage() {
                     {book.isAvailablePhysical ? (
                       <span className="text-xs text-green-600 font-medium">{book.availableCopies}/{book.totalCopies} copies</span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Digital only</span>
+                      <span className="text-xs text-muted-foreground">None</span>
                     )}
                   </td>
                   <td className="p-4">
