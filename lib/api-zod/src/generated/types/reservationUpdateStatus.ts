@@ -13,5 +13,6 @@ export const ReservationUpdateStatus = {
   pending: 'pending',
   ready: 'ready',
   fulfilled: 'fulfilled',
+  returned: 'returned',
   cancelled: 'cancelled',
 } as const;

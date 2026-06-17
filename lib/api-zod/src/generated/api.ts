@@ -478,7 +478,7 @@ export const ListReservationsResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "bookId": zod.number(),
-  "status": zod.enum(['pending', 'ready', 'fulfilled', 'cancelled']),
+  "status": zod.enum(['pending', 'ready', 'fulfilled', 'returned', 'cancelled']),
   "notes": zod.string().nullish(),
   "reservedAt": zod.string(),
   "updatedAt": zod.string(),
@@ -509,7 +509,7 @@ export const UpdateReservationParams = zod.object({
 })
 
 export const UpdateReservationBody = zod.object({
-  "status": zod.enum(['pending', 'ready', 'fulfilled', 'cancelled']),
+  "status": zod.enum(['pending', 'ready', 'fulfilled', 'returned', 'cancelled']),
   "notes": zod.string().nullish()
 })
 
@@ -517,7 +517,7 @@ export const UpdateReservationResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "bookId": zod.number(),
-  "status": zod.enum(['pending', 'ready', 'fulfilled', 'cancelled']),
+  "status": zod.enum(['pending', 'ready', 'fulfilled', 'returned', 'cancelled']),
   "notes": zod.string().nullish(),
   "reservedAt": zod.string(),
   "updatedAt": zod.string(),

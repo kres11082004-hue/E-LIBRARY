@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Library, Eye, EyeOff, ChevronLeft, User } from "lucide-react";
 
 const CAMPUSES = [
-  "ZDSPGC-Aurora Campus",
   "ZDSPGC-Dimataling Campus",
   "ZDSPGC-Dumingag Campus",
   "ZDSPGC-Guipos Campus",

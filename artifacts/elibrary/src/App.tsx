@@ -20,6 +20,7 @@ import AdminUsersPage from "@/pages/admin/users";
 import AdminMonitoringPage from "@/pages/admin/monitoring";
 import AdminReservationsPage from "@/pages/admin/reservations";
 import AdminReportsPage from "@/pages/admin/reports";
+import AdminDashboardPage from "@/pages/admin/dashboard";
 import ReadPage from "@/pages/read";
 
 const queryClient = new QueryClient({
@@ -65,7 +66,7 @@ function PublicRoute({ component: Component }: { component: React.ComponentType 
   if (isLoading) return null;
   if (user) {
     const isManager = user.role === "admin" || user.role === "librarian";
-    return <Redirect to={isManager ? "/admin/books" : "/"} />;
+    return <Redirect to={isManager ? "/admin/dashboard" : "/"} />;
   }
   return <Component />;
 }
@@ -78,7 +79,7 @@ function Router() {
       <Route path="/">{() => {
         const { user } = useAuth();
         const isManager = user?.role === "admin" || user?.role === "librarian";
-        if (isManager) return <Redirect to="/admin/books" />;
+        if (isManager) return <Redirect to="/admin/dashboard" />;
         return <ProtectedRoute component={HomePage} />;
       }}</Route>
       <Route path="/books">{() => <ProtectedRoute component={BooksPage} />}</Route>
@@ -87,6 +88,7 @@ function Router() {
       <Route path="/my-list">{() => <ProtectedRoute component={MyListPage} />}</Route>
       <Route path="/borrowed">{() => <ProtectedRoute component={BorrowedPage} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
+      <Route path="/admin/dashboard">{() => <ProtectedRoute component={AdminDashboardPage} adminOnly />}</Route>
       <Route path="/admin/books">{() => <ProtectedRoute component={AdminBooksPage} adminOnly />}</Route>
       <Route path="/admin/users">{() => <ProtectedRoute component={AdminUsersPage} adminOnly />}</Route>
       <Route path="/admin/monitoring">{() => <ProtectedRoute component={AdminMonitoringPage} adminOnly />}</Route>

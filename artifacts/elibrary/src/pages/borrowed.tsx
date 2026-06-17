@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { useListBorrowRecords } from "@workspace/api-client-react";
+import { useListBorrowRecords, useListReservations } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,32 @@ import { BookOpen, Calendar, Clock, AlertTriangle, BookMarked, ArrowLeftRight, C
 
 export default function BorrowedPage() {
   const { user } = useAuth();
-  const { data: records = [], isLoading } = useListBorrowRecords({ userId: user?.id });
+  const { data: borrowRecords = [], isLoading: isLoadingBorrows } = useListBorrowRecords({ userId: user?.id });
+  const { data: reservations = [], isLoading: isLoadingReservations } = useListReservations();
+  const isLoading = isLoadingBorrows || isLoadingReservations;
+
+  // Filter reservations for current user
+  const myReservations = reservations.filter(r => r.userId === user?.id);
+
+  // Combine reservations and borrow records
+  const records = [
+    ...borrowRecords,
+    ...myReservations.filter(r => r.status === "pending" || r.status === "ready").map(r => ({
+      id: `res-${r.id}`,
+      book: {
+        id: r.bookId,
+        title: r.bookTitle,
+        coverUrl: r.bookCoverUrl,
+        author: "Unknown", // API might not have author in reservation
+        category: "Unknown",
+        campus: r.bookCampus,
+      },
+      borrowedAt: null,
+      returnedAt: null,
+      dueDate: null,
+      status: r.status === "pending" ? "pending approval" : "approved (pickup)",
+    }))
+  ];
 
   // Format date and time helper
   const formatDateTime = (isoString?: string | null) => {
@@ -65,7 +90,7 @@ export default function BorrowedPage() {
     );
   }
 
-  const activeBorrows = records.filter((r) => r.status === "borrowed");
+  const activeBorrows = records.filter((r) => r.status === "borrowed" || r.status === "pending approval" || r.status === "approved (pickup)");
   const overdueBorrows = records.filter((r) => r.status === "overdue" || (r.status === "borrowed" && getDueStatus(r.dueDate, r.status)?.isOverdue));
   const returnedBorrows = records.filter((r) => r.status === "returned");
 
@@ -238,7 +263,7 @@ function BorrowList({ records, getDueStatus, formatDateTime }: BorrowListProps) 
               {/* Date Borrowed */}
               <div className="space-y-0.5">
                 <p className="text-muted-foreground font-medium text-[10px] uppercase tracking-wider flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-primary" /> Borrowed
+                  <Calendar className="w-3 h-3 text-primary" /> {record.status === "pending approval" ? "Requested" : "Borrowed"}
                 </p>
                 <p className="font-semibold text-foreground">{borrowed.date}</p>
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -255,6 +280,15 @@ function BorrowList({ records, getDueStatus, formatDateTime }: BorrowListProps) 
                   <p className="font-semibold text-green-700">{returned.date}</p>
                   <p className="text-[11px] text-green-600/80 flex items-center gap-1">
                     <Clock className="w-3 h-3" /> {returned.time}
+                  </p>
+                </div>
+              ) : record.status === "pending approval" || record.status === "approved (pickup)" ? (
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground font-medium text-[10px] uppercase tracking-wider flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-amber-600" /> Status
+                  </p>
+                  <p className="font-semibold text-foreground">
+                    Awaiting Action
                   </p>
                 </div>
               ) : (
@@ -287,6 +321,10 @@ function BorrowList({ records, getDueStatus, formatDateTime }: BorrowListProps) 
                   className={`capitalize font-semibold text-[11px] ${
                     record.status === "returned"
                       ? "bg-green-100 text-green-700 hover:bg-green-200 border-transparent dark:bg-green-950 dark:text-green-300"
+                      : record.status === "pending approval"
+                      ? "bg-amber-100 text-amber-800 hover:bg-amber-200 border-transparent dark:bg-amber-950 dark:text-amber-300"
+                      : record.status === "approved (pickup)"
+                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border-transparent dark:bg-blue-950 dark:text-blue-300"
                       : !isOverdue
                       ? "bg-amber-100 text-amber-800 hover:bg-amber-200 border-transparent dark:bg-amber-950 dark:text-amber-300"
                       : ""

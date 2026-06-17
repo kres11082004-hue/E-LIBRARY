@@ -1,32 +1,37 @@
-import { useListReservations, useUpdateReservation, useDeleteReservation, getListReservationsQueryKey } from "@workspace/api-client-react";
+import { useListReservations, useUpdateReservation, useDeleteReservation, getListReservationsQueryKey, useCreateBorrowRecord } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  CalendarCheck, Clock, CheckCircle, XCircle, BookOpen, User, Search, Filter,
+  CalendarCheck, Clock, CheckCircle, XCircle, BookOpen, User, Search, Filter, CheckCircle2,
 } from "lucide-react";
 
-type ReservationStatus = "pending" | "ready" | "fulfilled" | "cancelled";
+type ReservationStatus = "pending" | "ready" | "fulfilled" | "cancelled" | "returned";
 
 const STATUS_BADGE: Record<ReservationStatus, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; Icon: React.ElementType }> = {
   pending:   { label: "Pending",   variant: "secondary",   Icon: Clock },
   ready:     { label: "Ready",     variant: "default",     Icon: CheckCircle },
   fulfilled: { label: "Fulfilled", variant: "outline",     Icon: CalendarCheck },
   cancelled: { label: "Cancelled", variant: "destructive", Icon: XCircle },
+  returned:  { label: "Returned",  variant: "outline",     Icon: CheckCircle2 },
 };
 
 const NEXT_STATUS: Partial<Record<ReservationStatus, ReservationStatus>> = {
   pending:  "ready",
   ready:    "fulfilled",
+  fulfilled: "returned",
 };
 
 const NEXT_LABEL: Partial<Record<ReservationStatus, string>> = {
   pending: "Mark Ready",
   ready:   "Mark Fulfilled",
+  fulfilled: "Mark Returned",
 };
 
 export default function AdminReservationsPage() {
@@ -35,9 +40,13 @@ export default function AdminReservationsPage() {
   const { toast } = useToast();
   const updateMutation = useUpdateReservation();
   const cancelMutation = useDeleteReservation();
+  const createBorrowMutation = useCreateBorrowRecord();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ReservationStatus>("all");
+  
+  const [fulfillingReservation, setFulfillingReservation] = useState<any>(null);
+  const [dueDate, setDueDate] = useState("");
 
   const filtered = reservations.filter(r => {
     const q = search.toLowerCase();
@@ -46,13 +55,41 @@ export default function AdminReservationsPage() {
     return matchSearch && matchStatus;
   });
 
-  const handleAdvance = async (id: number, status: ReservationStatus) => {
+  const handleAdvance = async (r: any, nextStatus: ReservationStatus) => {
+    if (nextStatus === "fulfilled") {
+      setFulfillingReservation(r);
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      setDueDate(nextWeek.toISOString().split("T")[0]);
+      return;
+    }
+
     try {
-      await updateMutation.mutateAsync({ id, data: { status } });
-      toast({ title: `Reservation marked as "${status}"` });
+      await updateMutation.mutateAsync({ id: r.id, data: { status: nextStatus } });
+      toast({ title: `Reservation marked as "${nextStatus}"` });
       queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
     } catch {
       toast({ title: "Failed to update", variant: "destructive" });
+    }
+  };
+
+  const handleFulfill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fulfillingReservation || !dueDate) return;
+    try {
+      await createBorrowMutation.mutateAsync({
+        data: {
+          userId: fulfillingReservation.userId,
+          bookId: fulfillingReservation.bookId,
+          dueDate: new Date(dueDate).toISOString(),
+        },
+      });
+      await updateMutation.mutateAsync({ id: fulfillingReservation.id, data: { status: "fulfilled" } });
+      toast({ title: "Reservation fulfilled and book checked out!" });
+      queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+      setFulfillingReservation(null);
+    } catch (err: any) {
+      toast({ title: err?.data?.error || "Failed to fulfill reservation", variant: "destructive" });
     }
   };
 
@@ -70,6 +107,7 @@ export default function AdminReservationsPage() {
     pending:   reservations.filter(r => r.status === "pending").length,
     ready:     reservations.filter(r => r.status === "ready").length,
     fulfilled: reservations.filter(r => r.status === "fulfilled").length,
+    returned:  reservations.filter(r => r.status === "returned").length,
     cancelled: reservations.filter(r => r.status === "cancelled").length,
   };
 
@@ -81,8 +119,8 @@ export default function AdminReservationsPage() {
       </div>
 
       {/* Stats strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {(["pending", "ready", "fulfilled", "cancelled"] as const).map(s => {
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {(["pending", "ready", "fulfilled", "returned", "cancelled"] as const).map(s => {
           const { label, Icon } = STATUS_BADGE[s];
           return (
             <button
@@ -121,6 +159,7 @@ export default function AdminReservationsPage() {
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="ready">Ready</SelectItem>
             <SelectItem value="fulfilled">Fulfilled</SelectItem>
+            <SelectItem value="returned">Returned</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
@@ -185,7 +224,7 @@ export default function AdminReservationsPage() {
                     <Button
                       size="sm"
                       className="gap-1.5"
-                      onClick={() => handleAdvance(r.id, nextStatus)}
+                      onClick={() => handleAdvance(r, nextStatus as ReservationStatus)}
                       disabled={updateMutation.isPending}
                     >
                       <CheckCircle className="w-3.5 h-3.5" />
@@ -210,6 +249,34 @@ export default function AdminReservationsPage() {
           })}
         </div>
       )}
+
+      {/* Fulfill Reservation Dialog */}
+      <Dialog open={!!fulfillingReservation} onOpenChange={(open) => !open && setFulfillingReservation(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Return Due Date</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFulfill} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Due Date for {fulfillingReservation?.bookTitle}</Label>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                required
+                min={new Date().toISOString().split("T")[0]}
+              />
+              <p className="text-xs text-muted-foreground">Select when the student should return the book.</p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setFulfillingReservation(null)}>Cancel</Button>
+              <Button type="submit" disabled={createBorrowMutation.isPending || updateMutation.isPending}>
+                {(createBorrowMutation.isPending || updateMutation.isPending) ? "Processing..." : "Confirm & Check Out"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

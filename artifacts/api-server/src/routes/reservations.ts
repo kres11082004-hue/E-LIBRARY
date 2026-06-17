@@ -105,9 +105,26 @@ router.post("/reservations", requireAuth, async (req, res) => {
 router.put("/reservations/:id", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
   const id = parseInt(req.params["id"] as string);
   const { status, notes } = req.body;
-  const validStatuses = ["pending", "ready", "fulfilled", "cancelled"];
+  const validStatuses = ["pending", "ready", "fulfilled", "cancelled", "returned"];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ error: `status must be one of: ${validStatuses.join(", ")}` });
+  }
+
+  // If status is returned, update the active borrow record
+  if (status === "returned") {
+    const [reservation] = await db.select().from(reservationsTable).where(eq(reservationsTable.id, id));
+    if (reservation) {
+      const { borrowRecordsTable } = await import("@workspace/db");
+      await db.update(borrowRecordsTable)
+        .set({ status: "returned", returnedAt: new Date() })
+        .where(
+          and(
+            eq(borrowRecordsTable.userId, reservation.userId),
+            eq(borrowRecordsTable.bookId, reservation.bookId),
+            eq(borrowRecordsTable.status, "borrowed")
+          )
+        );
+    }
   }
 
   const [updated] = await db

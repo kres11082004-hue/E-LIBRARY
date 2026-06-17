@@ -4,12 +4,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CheckCircle, XCircle, Trash2, Users, Filter } from "lucide-react";
+import { Search, CheckCircle, XCircle, Trash2, Users, Filter, Building, Phone, MapPin, GraduationCap, Clock } from "lucide-react";
 
 const CAMPUSES = [
   "All",
-  "ZDSPGC-Aurora Campus",
   "ZDSPGC-Bayog Campus",
   "ZDSPGC-Dimataling Campus",
   "ZDSPGC-Dumingag Campus",
@@ -43,6 +43,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [campus, setCampus] = useState("All");
   const [role, setRole] = useState("All");
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -125,86 +126,144 @@ export default function AdminUsersPage() {
           <p className="font-medium text-foreground">No users found</p>
         </div>
       ) : (
-        <div className="bg-card border rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b bg-muted/30">
-              <tr>
-                <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-                <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Role</th>
-                <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Campus</th>
-                <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Academic Info</th>
-                <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-right p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filtered.map((user) => (
-                <tr key={user.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      {user.photoUrl ? (
-                        <div className="w-9 h-9 rounded-full border overflow-hidden shrink-0">
-                          <img src={user.photoUrl} alt="" className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
-                          {user.fullname.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium text-sm text-foreground">{user.fullname}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4 hidden md:table-cell">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[user.role] || "bg-secondary text-secondary-foreground"}`}>
-                      {user.role === "admin" || user.role === "librarian" ? "Admin/Librarian" : user.role}
-                    </span>
-                  </td>
-                  <td className="p-4 hidden lg:table-cell text-sm text-muted-foreground">{user.campus}</td>
-                  <td className="p-4 hidden lg:table-cell">
-                    {user.role === "student" && user.course ? (
-                      <div className="text-xs text-muted-foreground">
-                        <p className="truncate max-w-[160px]">{user.course}</p>
-                        <p>{user.year} — Sec {user.section}</p>
-                        <p className="font-mono">{user.studentNumber}</p>
-                      </div>
-                    ) : <span className="text-xs text-muted-foreground">—</span>}
-                  </td>
-                  <td className="p-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${user.isApproved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                      {user.isApproved ? "Approved" : "Pending"}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className={`h-8 gap-1 text-xs ${user.isApproved ? "text-amber-600 hover:bg-amber-50" : "text-green-600 hover:bg-green-50"}`}
-                        onClick={() => handleApprove(user.id, user.isApproved ?? false)}
-                        disabled={updateMutation.isPending}
-                      >
-                        {user.isApproved ? <><XCircle className="w-3 h-3" /> Suspend</> : <><CheckCircle className="w-3 h-3" /> Approve</>}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(user.id, user.fullname)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {filtered.map((user) => (
+            <div 
+              key={user.id}
+              onClick={() => setSelectedUser(user)}
+              className="bg-card border rounded-xl p-4 flex flex-col items-center text-center cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
+            >
+              <div className="w-20 h-20 rounded-full border-4 border-muted overflow-hidden mb-3 group-hover:border-primary/20 transition-colors shrink-0">
+                {user.photoUrl ? (
+                  <img src={user.photoUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
+                    {user.fullname.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <h3 className="font-semibold text-foreground line-clamp-1 w-full">{user.fullname}</h3>
+              <p className="text-xs text-muted-foreground mb-3 line-clamp-1 w-full">{user.email}</p>
+              
+              <div className="flex items-center gap-2 mb-4">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[user.role] || "bg-secondary text-secondary-foreground"}`}>
+                  {user.role === "admin" || user.role === "librarian" ? "Admin" : user.role}
+                </span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${user.isApproved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                  {user.isApproved ? "Approved" : "Pending"}
+                </span>
+              </div>
+
+              <div className="mt-auto w-full flex items-center justify-between gap-2 border-t pt-3">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={`flex-1 h-8 text-xs ${user.isApproved ? "text-amber-600 hover:bg-amber-50" : "text-green-600 hover:bg-green-50"}`}
+                  onClick={(e) => { e.stopPropagation(); handleApprove(user.id, user.isApproved ?? false); }}
+                  disabled={updateMutation.isPending}
+                >
+                  {user.isApproved ? <><XCircle className="w-3 h-3 mr-1" /> Suspend</> : <><CheckCircle className="w-3 h-3 mr-1" /> Approve</>}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="flex-none h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                  onClick={(e) => { e.stopPropagation(); handleDelete(user.id, user.fullname); }}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
+
+      {/* User Details Modal */}
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        {selectedUser && (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center text-center mt-2">
+              <div className="w-24 h-24 rounded-full border-4 border-muted overflow-hidden mb-4">
+                {selectedUser.photoUrl ? (
+                  <img src={selectedUser.photoUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold">
+                    {selectedUser.fullname.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <h2 className="text-xl font-bold text-foreground">{selectedUser.fullname}</h2>
+              <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+              
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[selectedUser.role] || "bg-secondary"}`}>
+                  {selectedUser.role === "admin" || selectedUser.role === "librarian" ? "Admin/Librarian" : selectedUser.role.charAt(0).toUpperCase() + selectedUser.role.slice(1)}
+                </span>
+                <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${selectedUser.isApproved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                  {selectedUser.isApproved ? "Approved" : "Pending Approval"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-3 mt-4 bg-muted/30 p-4 rounded-xl border">
+              <div className="flex items-center gap-3 text-sm text-foreground">
+                <Building className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="font-medium shrink-0">Campus:</span> 
+                <span className="text-muted-foreground truncate">{selectedUser.campus}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-foreground">
+                <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="font-medium shrink-0">Phone:</span> 
+                <span className="text-muted-foreground">{selectedUser.phone || "—"}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-foreground">
+                <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="font-medium shrink-0">Address:</span> 
+                <span className="text-muted-foreground line-clamp-2">{selectedUser.address || "—"}</span>
+              </div>
+              
+              {selectedUser.role === "student" && (
+                <>
+                  <div className="h-px bg-border my-2" />
+                  <div className="flex items-center gap-3 text-sm text-foreground">
+                    <GraduationCap className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium shrink-0">Course:</span> 
+                    <span className="text-muted-foreground truncate">{selectedUser.course || "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-foreground">
+                    <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium shrink-0">Year/Sec:</span> 
+                    <span className="text-muted-foreground">{selectedUser.year ? `${selectedUser.year} — Sec ${selectedUser.section}` : "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-foreground">
+                    <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium shrink-0">Student No:</span> 
+                    <span className="text-muted-foreground font-mono">{selectedUser.studentNumber || "—"}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <div className="flex gap-2 mt-2">
+              <Button
+                className={`flex-1 ${selectedUser.isApproved ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-green-100 text-green-700 hover:bg-green-200"}`}
+                variant="secondary"
+                onClick={() => {
+                  handleApprove(selectedUser.id, selectedUser.isApproved ?? false);
+                  setSelectedUser({ ...selectedUser, isApproved: !selectedUser.isApproved });
+                }}
+                disabled={updateMutation.isPending}
+              >
+                {selectedUser.isApproved ? <><XCircle className="w-4 h-4 mr-2" /> Suspend User</> : <><CheckCircle className="w-4 h-4 mr-2" /> Approve User</>}
+              </Button>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

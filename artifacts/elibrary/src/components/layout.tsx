@@ -68,7 +68,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {isManager ? (
           <>
             <p className="px-4 mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">Dashboard</p>
-            <NavLink href="/" icon={Home}>Dashboard</NavLink>
+            <NavLink href="/admin/dashboard" icon={Home}>Dashboard</NavLink>
 
             <div className="mt-5 mb-2 px-4 text-xs font-bold tracking-wider text-muted-foreground uppercase">Management</div>
             <NavLink href="/admin/books" icon={BookOpen}>Manage Books</NavLink>

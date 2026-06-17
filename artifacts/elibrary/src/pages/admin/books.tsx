@@ -13,7 +13,6 @@ import { useAuth } from "@/lib/auth-context";
 
 const CATEGORIES = ["Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
 const CAMPUSES = [
-  "ZDSPGC-Aurora Campus",
   "ZDSPGC-Bayog Campus",
   "ZDSPGC-Dimataling Campus",
   "ZDSPGC-Dumingag Campus",

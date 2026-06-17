@@ -20,13 +20,6 @@ import {
 } from "lucide-react";
 import { triggerBookDownload } from "@/lib/download-helper";
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
-  pending:   { label: "Reservation Pending",    color: "text-amber-700 bg-amber-50 border-amber-200",   Icon: Clock },
-  ready:     { label: "Ready for Pickup!",       color: "text-green-700 bg-green-50 border-green-200",   Icon: CheckCircle },
-  fulfilled: { label: "Reservation Fulfilled",   color: "text-blue-700 bg-blue-50 border-blue-200",     Icon: CalendarCheck },
-  cancelled: { label: "Reservation Cancelled",   color: "text-muted-foreground bg-muted border-border",  Icon: XCircle },
-};
-
 export default function BookDetailPage() {
   const [, params] = useRoute("/books/:id");
   const id = parseInt(params?.id || "0");
@@ -49,6 +42,24 @@ export default function BookDetailPage() {
   const myReservation = reservations.find(
     r => r.bookId === id && r.userId === user?.id
   );
+  
+  const getReservationStatus = () => {
+    if (!myReservation) return null;
+    switch (myReservation.status) {
+      case "pending":
+        return { label: "Borrow Request Pending", color: "text-amber-600 border-amber-200 bg-amber-50", Icon: Clock };
+      case "ready":
+        return { label: "Approved for Pickup", color: "text-blue-600 border-blue-200 bg-blue-50", Icon: CheckCircle };
+      case "fulfilled":
+        return { label: "Currently Borrowed", color: "text-green-600 border-green-200 bg-green-50", Icon: CheckCircle };
+      case "cancelled":
+        return { label: "Request Cancelled", color: "text-muted-foreground bg-muted border-border", Icon: XCircle };
+      default:
+        return null;
+    }
+  };
+
+  const reservationStatus = getReservationStatus();
   const hasActiveReservation = myReservation && (myReservation.status === "pending" || myReservation.status === "ready");
 
   const handleToggleList = async () => {
@@ -69,10 +80,10 @@ export default function BookDetailPage() {
   const handleReserve = async () => {
     try {
       await createReservation.mutateAsync({ data: { bookId: id } });
-      toast({ title: "Reservation submitted!", description: "Visit the library to pick it up when it's ready." });
+      toast({ title: "Borrow request submitted!", description: "Check status in your profile." });
       queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
     } catch (err: any) {
-      toast({ title: err?.data?.error || "Could not reserve book", variant: "destructive" });
+      toast({ title: err?.data?.error || "Could not request book", variant: "destructive" });
     }
   };
 
@@ -80,10 +91,10 @@ export default function BookDetailPage() {
     if (!myReservation) return;
     try {
       await cancelReservation.mutateAsync({ id: myReservation.id });
-      toast({ title: "Reservation cancelled" });
+      toast({ title: "Borrow request cancelled" });
       queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
     } catch {
-      toast({ title: "Could not cancel reservation", variant: "destructive" });
+      toast({ title: "Could not cancel request", variant: "destructive" });
     }
   };
 
@@ -112,8 +123,6 @@ export default function BookDetailPage() {
       </div>
     );
   }
-
-  const reservationStatus = myReservation ? STATUS_CONFIG[myReservation.status] : null;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -182,7 +191,6 @@ export default function BookDetailPage() {
             <p className="text-lg text-muted-foreground mt-1">{book.author}</p>
           </div>
 
-          {/* Digital availability badge */}
           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${book.fileUrl ? "bg-green-50 text-green-700 border border-green-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
             <div className={`w-2 h-2 rounded-full ${book.fileUrl ? "bg-green-500" : "bg-amber-400"}`} />
             {book.fileUrl ? "Digital copy available — read online" : "No digital copy — physical only"}
@@ -212,12 +220,11 @@ export default function BookDetailPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">{book.description}</p>
           </div>
 
-          {/* Physical Availability + Reserve */}
+          {/* Physical Availability + Borrow Request */}
           {book.isAvailablePhysical && (
             <div className="bg-card border rounded-xl p-4 space-y-4">
               <h3 className="font-semibold text-sm text-foreground">Physical Copy Availability</h3>
 
-              {/* Copy count */}
               <div className="flex items-center gap-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-foreground">{book.availableCopies ?? 0}</p>
@@ -236,28 +243,26 @@ export default function BookDetailPage() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {(book.availableCopies ?? 0) > 0 ? "Available for borrowing" : "All copies are borrowed"}
+                    {(book.availableCopies ?? 0) > 0 ? "Available for borrowing" : "All copies are currently borrowed"}
                   </p>
                 </div>
               </div>
 
-              {/* Reservation status badge */}
               {reservationStatus && (
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border ${reservationStatus.color}`}>
                   <reservationStatus.Icon className="w-4 h-4 shrink-0" />
                   <div>
                     <p className="font-semibold">{reservationStatus.label}</p>
                     {myReservation?.status === "ready" && (
-                      <p className="text-xs font-normal mt-0.5">Visit {book.campus} library to collect your reserved copy.</p>
+                      <p className="text-xs mt-0.5 font-medium">Please pick up from the library counter</p>
                     )}
                     {myReservation?.status === "pending" && (
-                      <p className="text-xs font-normal mt-0.5">We'll prepare your copy — please visit {book.campus} library.</p>
+                      <p className="text-xs mt-0.5 opacity-80">Waiting for librarian approval</p>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Reserve / cancel button — only for non-admin users */}
               {user?.role !== "admin" && user?.role !== "librarian" && (
                 <>
                   {hasActiveReservation ? (
@@ -268,7 +273,7 @@ export default function BookDetailPage() {
                       disabled={cancelReservation.isPending}
                     >
                       <XCircle className="w-4 h-4" />
-                      Cancel My Reservation
+                      Cancel Borrow Request
                     </Button>
                   ) : myReservation?.status !== "fulfilled" && (
                     <Button
