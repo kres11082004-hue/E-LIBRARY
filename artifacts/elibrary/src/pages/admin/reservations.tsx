@@ -273,7 +273,7 @@ export default function AdminReservationsPage() {
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setFulfillingReservation(null)}>Cancel</Button>
               <Button type="submit" disabled={createBorrowMutation.isPending || updateMutation.isPending}>
-                {(createBorrowMutation.isPending || updateMutation.isPending) ? "Processing..." : "Confirm & Check Out"}
+                {(createBorrowMutation.isPending || updateMutation.isPending) ? "Processing..." : "Confirm"}
               </Button>
             </DialogFooter>
           </form>
