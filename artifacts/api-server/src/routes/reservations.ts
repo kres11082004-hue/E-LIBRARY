@@ -118,12 +118,7 @@ router.put("/reservations/:id", requireAuth, requireRole("admin", "librarian"), 
   // Handle book inventory changes based on status transition
   const [book] = await db.select().from(booksTable).where(eq(booksTable.id, existingReservation.bookId));
   if (book) {
-    if (oldStatus !== "fulfilled" && status === "fulfilled") {
-      // Book is checked out, decrement copies
-      await db.update(booksTable)
-        .set({ availableCopies: Math.max(0, book.availableCopies - 1) })
-        .where(eq(booksTable.id, book.id));
-    } else if (oldStatus === "fulfilled" && (status === "returned" || status === "cancelled")) {
+    if (oldStatus === "fulfilled" && (status === "returned" || status === "cancelled")) {
       // Book is brought back, increment copies (bounded by totalCopies)
       await db.update(booksTable)
         .set({ availableCopies: Math.min(book.totalCopies, book.availableCopies + 1) })

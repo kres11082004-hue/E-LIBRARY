@@ -10,7 +10,7 @@ router.get("/monitoring/stats", requireAuth, requireRole("admin", "librarian"), 
   const books = await db.select().from(booksTable);
   const borrows = await db.select().from(borrowRecordsTable);
 
-  const activeBorrows = borrows.filter(b => b.status === "borrowed").length;
+  const activeBorrows = borrows.filter(b => b.status === "borrowed" || b.status === "overdue").length;
   const overdueBooks = borrows.filter(b => b.status === "overdue").length;
   const campuses = new Set(users.map(u => u.campus)).size;
 
@@ -42,7 +42,7 @@ router.get("/monitoring/by-campus", requireAuth, requireRole("admin", "librarian
     if (user.role === "instructor") c.instructors++;
   }
 
-  for (const borrow of borrows.filter(b => b.status === "borrowed")) {
+  for (const borrow of borrows.filter(b => b.status === "borrowed" || b.status === "overdue")) {
     const user = users.find(u => u.id === borrow.userId);
     if (user && campusMap.has(user.campus)) {
       campusMap.get(user.campus)!.activeBorrows++;
@@ -75,7 +75,7 @@ router.get("/monitoring/by-course", requireAuth, requireRole("admin", "librarian
     courseMap.get(key)!.studentCount++;
   }
 
-  for (const borrow of borrows.filter(b => b.status === "borrowed")) {
+  for (const borrow of borrows.filter(b => b.status === "borrowed" || b.status === "overdue")) {
     const user = students.find(u => u.id === borrow.userId);
     if (user?.course) {
       const key = `${user.course}|${user.year}|${user.section}|${user.campus}`;
