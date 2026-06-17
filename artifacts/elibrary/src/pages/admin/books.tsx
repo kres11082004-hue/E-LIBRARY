@@ -40,6 +40,23 @@ const emptyForm = {
   coverUrl: "", fileUrl: "", isbn: "", publishedYear: "", isAvailablePhysical: false, totalCopies: "0",
 };
 
+// Derive a simple 3-way book type from form state
+// "none"     = no physical, no digital content
+// "physical" = physical only (no digital content filled)
+// "both"     = physical + digital content
+function getBookType(form: typeof emptyForm): "none" | "physical" | "both" {
+  if (form.isAvailablePhysical && form.content) return "both";
+  if (form.isAvailablePhysical) return "physical";
+  return "none";
+}
+
+function applyBookType(type: "none" | "physical" | "both", form: typeof emptyForm): Partial<typeof emptyForm> {
+  if (type === "none") return { isAvailablePhysical: false, totalCopies: "0" };
+  if (type === "physical") return { isAvailablePhysical: true, totalCopies: form.totalCopies === "0" ? "1" : form.totalCopies };
+  // both: keep any existing content, ensure physical is on
+  return { isAvailablePhysical: true, totalCopies: form.totalCopies === "0" ? "1" : form.totalCopies };
+}
+
 export default function AdminBooksPage() {
   const [search, setSearch] = useState("");
   const [showDialog, setShowDialog] = useState(false);
@@ -233,6 +250,10 @@ export default function AdminBooksPage() {
                       <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Uploaded
                       </span>
+                    ) : book.isAvailablePhysical ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium">
+                        <Circle className="w-3.5 h-3.5" /> Physical Only
+                      </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                         <Circle className="w-3.5 h-3.5" /> None
@@ -370,20 +391,44 @@ export default function AdminBooksPage() {
                     <Label>Published Year</Label>
                     <Input type="number" value={form.publishedYear} onChange={set("publishedYear")} placeholder="2024" min="1000" max="2100" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Physical Copies</Label>
-                    <Input type="number" min="0" value={form.totalCopies} onChange={set("totalCopies")} />
+                  {/* ── Book Type Selector ── */}
+                  <div className="col-span-2 space-y-2">
+                    <Label>Book Availability</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: "none",     label: "None",              desc: "No physical / digital",      icon: "🚫" },
+                        { value: "physical", label: "Physical",           desc: "Library copy only",          icon: "📚" },
+                        { value: "both",     label: "Physical + Digital", desc: "Physical & online readable",  icon: "📖" },
+                      ] as const).map(({ value, label, desc, icon }) => {
+                        const current = getBookType(form);
+                        const active = current === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, ...applyBookType(value, f) }))}
+                            className={`flex flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 text-center transition-all ${
+                              active
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-input bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                            }`}
+                          >
+                            <span className="text-xl">{icon}</span>
+                            <span className="text-xs font-semibold">{label}</span>
+                            <span className="text-[10px] leading-tight opacity-70">{desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="col-span-2 flex items-center gap-3 pt-1">
-                    <input
-                      type="checkbox"
-                      id="physical"
-                      checked={form.isAvailablePhysical}
-                      onChange={(e) => setForm(f => ({ ...f, isAvailablePhysical: e.target.checked }))}
-                      className="w-4 h-4 rounded border-input accent-primary"
-                    />
-                    <Label htmlFor="physical" className="cursor-pointer">Available as physical copy in library</Label>
-                  </div>
+
+                  {/* Physical copies count — shown only when physical is selected */}
+                  {form.isAvailablePhysical && (
+                    <div className="space-y-2">
+                      <Label>Physical Copies</Label>
+                      <Input type="number" min="1" value={form.totalCopies} onChange={set("totalCopies")} />
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
