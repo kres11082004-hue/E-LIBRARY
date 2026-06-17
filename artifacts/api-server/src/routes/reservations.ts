@@ -110,20 +110,38 @@ router.put("/reservations/:id", requireAuth, requireRole("admin", "librarian"), 
     return res.status(400).json({ error: `status must be one of: ${validStatuses.join(", ")}` });
   }
 
+  const [existingReservation] = await db.select().from(reservationsTable).where(eq(reservationsTable.id, id));
+  if (!existingReservation) return res.status(404).json({ error: "Reservation not found" });
+
+  const oldStatus = existingReservation.status;
+
+  // Handle book inventory changes based on status transition
+  const [book] = await db.select().from(booksTable).where(eq(booksTable.id, existingReservation.bookId));
+  if (book) {
+    if (oldStatus !== "fulfilled" && status === "fulfilled") {
+      // Book is checked out, decrement copies
+      await db.update(booksTable)
+        .set({ availableCopies: Math.max(0, book.availableCopies - 1) })
+        .where(eq(booksTable.id, book.id));
+    } else if (oldStatus === "fulfilled" && (status === "returned" || status === "cancelled")) {
+      // Book is brought back, increment copies (bounded by totalCopies)
+      await db.update(booksTable)
+        .set({ availableCopies: Math.min(book.totalCopies, book.availableCopies + 1) })
+        .where(eq(booksTable.id, book.id));
+    }
+  }
+
   // If status is returned, also mark the active borrow record as returned
   if (status === "returned") {
-    const [reservation] = await db.select().from(reservationsTable).where(eq(reservationsTable.id, id));
-    if (reservation) {
-      await db.update(borrowRecordsTable)
-        .set({ status: "returned", returnedAt: new Date() })
-        .where(
-          and(
-            eq(borrowRecordsTable.userId, reservation.userId),
-            eq(borrowRecordsTable.bookId, reservation.bookId),
-            eq(borrowRecordsTable.status, "borrowed")
-          )
-        );
-    }
+    await db.update(borrowRecordsTable)
+      .set({ status: "returned", returnedAt: new Date() })
+      .where(
+        and(
+          eq(borrowRecordsTable.userId, existingReservation.userId),
+          eq(borrowRecordsTable.bookId, existingReservation.bookId),
+          eq(borrowRecordsTable.status, "borrowed")
+        )
+      );
   }
 
   const [updated] = await db
@@ -132,7 +150,6 @@ router.put("/reservations/:id", requireAuth, requireRole("admin", "librarian"), 
     .where(eq(reservationsTable.id, id))
     .returning();
 
-  if (!updated) return res.status(404).json({ error: "Reservation not found" });
   return res.json(fmt(updated));
 });
 
