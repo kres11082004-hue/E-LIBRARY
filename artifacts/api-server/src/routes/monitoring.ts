@@ -13,10 +13,14 @@ router.get("/monitoring/stats", requireAuth, requireRole("admin", "librarian"), 
   const activeBorrows = borrows.filter(b => b.status === "borrowed").length;
   const overdueBooks = borrows.filter(b => b.status === "overdue").length;
   const campuses = new Set(users.map(u => u.campus)).size;
+  const digitalBooks = books.filter(b => b.content || b.fileUrl).length;
+  const physicalBooks = books.filter(b => b.isAvailablePhysical).length;
 
   return res.json({
     totalUsers: users.length,
     totalBooks: books.length,
+    digitalBooks,
+    physicalBooks,
     activeBorrows,
     totalStudents: users.filter(u => u.role === "student").length,
     totalInstructors: users.filter(u => u.role === "instructor").length,

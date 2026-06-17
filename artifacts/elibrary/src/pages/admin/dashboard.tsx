@@ -1,6 +1,6 @@
 import { useGetMonitoringStats, useListBorrowRecords, useListUsers } from "@workspace/api-client-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, BookOpen, AlertTriangle, BookMarked } from "lucide-react";
+import { Users, BookOpen, AlertTriangle, BookMarked, Monitor, Library } from "lucide-react";
 
 import { Link } from "wouter";
 import { BackButton } from "@/components/back-button";
@@ -62,11 +62,12 @@ export default function AdminDashboardPage() {
       </div>
 
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Users" value={stats.totalUsers} icon={Users} color="bg-primary/10 text-primary" href="/admin/users" />
-          <StatCard label="Total Books" value={stats.totalBooks} icon={BookOpen} color="bg-green-500/10 text-green-600" href="/admin/books" />
-          <StatCard label="Active Borrows" value={stats.activeBorrows} icon={BookMarked} color="bg-amber-500/10 text-amber-600" href="/admin/monitoring" />
-          <StatCard label="Overdue" value={stats.overdueBooks ?? 0} icon={AlertTriangle} color="bg-red-500/10 text-red-600" href="/admin/monitoring" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatCard label="Total Users"     value={stats.totalUsers}              icon={Users}          color="bg-primary/10 text-primary"       href="/admin/users" />
+          <StatCard label="Digital Books"   value={(stats as any).digitalBooks ?? 0}  icon={Monitor}        color="bg-blue-500/10 text-blue-600"     href="/admin/books" />
+          <StatCard label="Physical Books"  value={(stats as any).physicalBooks ?? 0} icon={Library}        color="bg-green-500/10 text-green-600"   href="/admin/books" />
+          <StatCard label="Active Borrows"  value={stats.activeBorrows}           icon={BookMarked}     color="bg-amber-500/10 text-amber-600"   href="/admin/monitoring" />
+          <StatCard label="Overdue"         value={stats.overdueBooks ?? 0}       icon={AlertTriangle}  color="bg-red-500/10 text-red-600"       href="/admin/monitoring" />
         </div>
       )}
 
