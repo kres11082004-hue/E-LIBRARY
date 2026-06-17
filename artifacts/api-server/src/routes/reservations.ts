@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, reservationsTable, booksTable, usersTable } from "@workspace/db";
+import { db, reservationsTable, booksTable, usersTable, borrowRecordsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 
@@ -110,11 +110,10 @@ router.put("/reservations/:id", requireAuth, requireRole("admin", "librarian"), 
     return res.status(400).json({ error: `status must be one of: ${validStatuses.join(", ")}` });
   }
 
-  // If status is returned, update the active borrow record
+  // If status is returned, also mark the active borrow record as returned
   if (status === "returned") {
     const [reservation] = await db.select().from(reservationsTable).where(eq(reservationsTable.id, id));
     if (reservation) {
-      const { borrowRecordsTable } = await import("@workspace/db");
       await db.update(borrowRecordsTable)
         .set({ status: "returned", returnedAt: new Date() })
         .where(

@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, BookOpen, Search, FileText, BookText, CheckCircle2, Circle, Link2, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { BackButton } from "@/components/back-button";
 
 const CATEGORIES = ["Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
 const CAMPUSES = [
@@ -163,6 +164,7 @@ export default function AdminBooksPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { Search, BookOpen, BookMarked, Filter, BookText, Download, Plus } from "lucide-react";
 import { triggerBookDownload } from "@/lib/download-helper";
+import { BackButton } from "@/components/back-button";
 
 const CATEGORIES = ["All", "Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
 
@@ -117,6 +118,7 @@ export default function BooksPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Browse Library</h1>

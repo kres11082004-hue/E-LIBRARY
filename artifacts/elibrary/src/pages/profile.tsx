@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Phone, MapPin, Building, BookOpen, Hash, GraduationCap } from "lucide-react";
+import { BackButton } from "@/components/back-button";
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
   if (!value) return null;
@@ -56,6 +57,7 @@ export default function ProfilePage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
+      <BackButton />
       <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
 
       {/* Avatar + Name */}

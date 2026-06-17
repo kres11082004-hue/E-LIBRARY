@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { BackButton } from "@/components/back-button";
 import {
   CalendarCheck, Clock, CheckCircle, XCircle, BookOpen, User, Search, Filter, CheckCircle2,
 } from "lucide-react";
@@ -113,6 +114,7 @@ export default function AdminReservationsPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <BackButton />
       <div>
         <h1 className="text-2xl font-bold text-foreground">Reservations</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage physical book reservation requests from students and faculty.</p>

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, BookOpen, AlertTriangle, BookMarked, Building, GraduationCap, Clock, Plus, CheckCircle } from "lucide-react";
+import { BackButton } from "@/components/back-button";
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
   return (
@@ -79,6 +80,7 @@ export default function AdminMonitoringPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Library Monitoring</h1>

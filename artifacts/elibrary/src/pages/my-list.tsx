@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BookOpen, BookMarked, Trash2, Download, CheckCircle, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getDownloadedBooks, removeDownloadedBook, DownloadedBook } from "@/lib/download-helper";
+import { BackButton } from "@/components/back-button";
 
 export default function MyListPage() {
   const { data: myList = [], isLoading } = useGetMyList();
@@ -55,6 +56,7 @@ export default function MyListPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
+      <BackButton />
       {/* Title */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">My Library</h1>
@@ -248,17 +250,6 @@ export default function MyListPage() {
         )
       )}
 
-      {/* Device Info */}
-      <div className="bg-muted/50 border rounded-xl p-4 flex gap-3 items-start">
-        <Smartphone className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
-        <div>
-          <p className="text-xs text-foreground font-semibold">Offline Access Details</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-            All downloads on this screen are saved in your browser&apos;s local storage. 
-            You can read downloaded books at any time even if your internet connection is disconnected.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { BookOpen, BookMarked, Users, TrendingUp, Clock, ArrowRight, Library } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BackButton } from "@/components/back-button";
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
   return (
@@ -91,6 +92,7 @@ export default function HomePage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
+      <BackButton />
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">{greeting}, {user?.fullname?.split(" ")[0]}</h1>

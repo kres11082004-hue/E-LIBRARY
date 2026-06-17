@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Users, BookOpen, AlertTriangle, BookMarked } from "lucide-react";
 
 import { Link } from "wouter";
+import { BackButton } from "@/components/back-button";
 
 function StatCard({ label, value, icon: Icon, color, href }: { label: string; value: number; icon: React.ElementType; color: string; href: string }) {
   const CardContent = (
@@ -54,6 +55,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <BackButton />
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-0.5">Overview of library activity and usage</p>

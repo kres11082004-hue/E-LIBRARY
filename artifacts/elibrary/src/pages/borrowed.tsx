@@ -6,12 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Calendar, Clock, AlertTriangle, BookMarked, ArrowLeftRight, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { BackButton } from "@/components/back-button";
 
 export default function BorrowedPage() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const { data: borrowRecords = [], isLoading: isLoadingBorrows } = useListBorrowRecords({ userId: user?.id });
   const { data: reservations = [], isLoading: isLoadingReservations } = useListReservations();
   const isLoading = isLoadingBorrows || isLoadingReservations;
+
+  const [activeTab, setActiveTab] = useState<string>("all");
 
   // Filter reservations for current user
   const myReservations = reservations.filter(r => r.userId === user?.id);
@@ -91,11 +97,12 @@ export default function BorrowedPage() {
   }
 
   const activeBorrows = records.filter((r) => r.status === "borrowed" || r.status === "pending approval" || r.status === "approved (pickup)");
-  const overdueBorrows = records.filter((r) => r.status === "overdue" || (r.status === "borrowed" && getDueStatus(r.dueDate, r.status)?.isOverdue));
+  const overdueBorrows = records.filter((r) => r.status === "overdue" || (r.status === "borrowed" && getDueStatus(r.dueDate || undefined, r.status)?.isOverdue));
   const returnedBorrows = records.filter((r) => r.status === "returned");
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <BackButton />
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">My Borrowed Books</h1>
@@ -119,7 +126,10 @@ export default function BorrowedPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="border-card-border bg-card">
+        <Card 
+          className={`border-card-border bg-card cursor-pointer transition-colors hover:border-primary/50 ${activeTab === 'active' ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+          onClick={() => setActiveTab('active')}
+        >
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Active Borrows</p>
@@ -130,7 +140,10 @@ export default function BorrowedPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-card-border bg-card">
+        <Card 
+          className={`border-card-border bg-card cursor-pointer transition-colors hover:border-destructive/50 ${activeTab === 'overdue' ? 'ring-2 ring-destructive ring-offset-1' : ''}`}
+          onClick={() => setActiveTab('overdue')}
+        >
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Overdue</p>
@@ -143,7 +156,10 @@ export default function BorrowedPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-card-border bg-card">
+        <Card 
+          className={`border-card-border bg-card cursor-pointer transition-colors hover:border-green-500/50 ${activeTab === 'returned' ? 'ring-2 ring-green-500 ring-offset-1' : ''}`}
+          onClick={() => setActiveTab('returned')}
+        >
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Returned</p>
@@ -157,7 +173,7 @@ export default function BorrowedPage() {
       </div>
 
       {/* Main Filter Tabs */}
-      <Tabs defaultValue="all" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="all" className="gap-2">
             All Records ({records.length})
@@ -165,25 +181,38 @@ export default function BorrowedPage() {
           <TabsTrigger value="active" className="gap-2">
             Active Borrows ({activeBorrows.length + overdueBorrows.length})
           </TabsTrigger>
+          <TabsTrigger value="overdue" className="gap-2">
+            Overdue ({overdueBorrows.length})
+          </TabsTrigger>
           <TabsTrigger value="returned" className="gap-2">
             Returned ({returnedBorrows.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-0">
-          <BorrowList records={records} getDueStatus={getDueStatus} formatDateTime={formatDateTime} />
+          <BorrowList records={records} getDueStatus={getDueStatus} formatDateTime={formatDateTime} onRowClick={(id) => setLocation(`/books/${id}`)} />
         </TabsContent>
 
         <TabsContent value="active" className="mt-0">
           <BorrowList 
             records={[...overdueBorrows, ...activeBorrows.filter(r => !overdueBorrows.some(o => o.id === r.id))]} 
             getDueStatus={getDueStatus} 
-            formatDateTime={formatDateTime} 
+            formatDateTime={formatDateTime}
+            onRowClick={(id) => setLocation(`/books/${id}`)}
+          />
+        </TabsContent>
+
+        <TabsContent value="overdue" className="mt-0">
+          <BorrowList 
+            records={overdueBorrows} 
+            getDueStatus={getDueStatus} 
+            formatDateTime={formatDateTime}
+            onRowClick={(id) => setLocation(`/books/${id}`)}
           />
         </TabsContent>
 
         <TabsContent value="returned" className="mt-0">
-          <BorrowList records={returnedBorrows} getDueStatus={getDueStatus} formatDateTime={formatDateTime} />
+          <BorrowList records={returnedBorrows} getDueStatus={getDueStatus} formatDateTime={formatDateTime} onRowClick={(id) => setLocation(`/books/${id}`)} />
         </TabsContent>
       </Tabs>
     </div>
@@ -194,9 +223,10 @@ interface BorrowListProps {
   records: any[];
   getDueStatus: (dueDateStr?: string, status?: string) => { text: string; isOverdue: boolean } | null;
   formatDateTime: (isoString?: string | null) => { date: string; time: string; full: string };
+  onRowClick?: (bookId: number) => void;
 }
 
-function BorrowList({ records, getDueStatus, formatDateTime }: BorrowListProps) {
+function BorrowList({ records, getDueStatus, formatDateTime, onRowClick }: BorrowListProps) {
   if (records.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 bg-card border border-dashed border-card-border rounded-xl text-center">
@@ -226,8 +256,9 @@ function BorrowList({ records, getDueStatus, formatDateTime }: BorrowListProps) 
         return (
           <div
             key={record.id}
-            className={`bg-card border rounded-xl p-5 hover:shadow-sm transition-all flex flex-col md:flex-row gap-5 justify-between items-start md:items-center ${
-              isOverdue ? "border-destructive/30 bg-destructive/5" : "border-card-border"
+            onClick={() => onRowClick?.(record.book?.id)}
+            className={`bg-card border rounded-xl p-5 hover:shadow-sm transition-all flex flex-col md:flex-row gap-5 justify-between items-start md:items-center cursor-pointer ${
+              isOverdue ? "border-destructive/30 bg-destructive/5 hover:border-destructive" : "border-card-border hover:border-primary/50"
             }`}
           >
             {/* Book Details */}

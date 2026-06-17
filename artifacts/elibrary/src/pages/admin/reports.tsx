@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { useGetMonitoringStats, useGetMonitoringByCampus, useGetMonitoringByCourse, useListBorrowRecords, useListUsers } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Printer, FileText, Users, BookOpen, BookMarked, AlertTriangle, Building, GraduationCap } from "lucide-react";
+import { BackButton } from "@/components/back-button";
 
 function Section({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
   return (
@@ -49,6 +50,7 @@ export default function AdminReportsPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
+      <BackButton className="print:hidden" />
       {/* Screen-only header */}
       <div className="flex items-center justify-between mb-6 print:hidden">
         <div>

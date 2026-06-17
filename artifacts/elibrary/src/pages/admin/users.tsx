@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Search, CheckCircle, XCircle, Trash2, Users, Filter, Building, Phone, MapPin, GraduationCap, Clock } from "lucide-react";
+import { BackButton } from "@/components/back-button";
 
 const CAMPUSES = [
   "All",
@@ -79,6 +80,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <BackButton />
       <div>
         <h1 className="text-2xl font-bold text-foreground">Manage Users</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
