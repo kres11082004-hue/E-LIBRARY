@@ -170,15 +170,7 @@ export default function AdminBooksPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Manage Books</h1>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-muted-foreground text-sm">{books.length} total</span>
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
-              🖥️ {books.filter((b: any) => b.content || b.fileUrl).length} digital
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
-              📚 {books.filter((b: any) => b.isAvailablePhysical).length} physical
-            </span>
-          </div>
+          <p className="text-muted-foreground text-sm mt-0.5">{books.length} books in library</p>
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="w-4 h-4" /> Add Book

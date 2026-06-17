@@ -137,15 +137,68 @@ export function triggerBookDownload(book: {
       mainContent,
     ].filter(Boolean).join("\n");
 
-    const blob = new Blob([docText], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${book.title.replace(/[^a-z0-9]/gi, "_")}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    import('jspdf').then(({ jsPDF }) => {
+      const doc = new jsPDF();
+      
+      const margin = 15;
+      const pageWidth = doc.internal.pageSize.width;
+      const maxLineWidth = pageWidth - margin * 2;
+      
+      // Title
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      const titleLines = doc.splitTextToSize(book.title, maxLineWidth);
+      let y = margin + 10;
+      doc.text(titleLines, margin, y);
+      y += titleLines.length * 10;
+      
+      // Author and Meta
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(`by ${book.author}`, margin, y);
+      y += 8;
+      
+      if (book.isbn) {
+        doc.text(`ISBN: ${book.isbn}`, margin, y);
+        y += 6;
+      }
+      if (book.publishedYear) {
+        doc.text(`Published: ${book.publishedYear}`, margin, y);
+        y += 6;
+      }
+      
+      y += 5;
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 10;
+      
+      // Content
+      doc.setFontSize(11);
+      
+      const contentLines = doc.splitTextToSize(mainContent, maxLineWidth);
+      
+      for (let i = 0; i < contentLines.length; i++) {
+        if (y > doc.internal.pageSize.height - margin) {
+          doc.addPage();
+          y = margin + 10;
+        }
+        doc.text(contentLines[i], margin, y);
+        y += 6;
+      }
+      
+      doc.save(`${book.title.replace(/[^a-z0-9]/gi, "_")}.pdf`);
+    }).catch(err => {
+      console.error("Failed to load jsPDF", err);
+      // Fallback to text
+      const blob = new Blob([docText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${book.title.replace(/[^a-z0-9]/gi, "_")}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
   }
 
   // Save download metadata to local storage
