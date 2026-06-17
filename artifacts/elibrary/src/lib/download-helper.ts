@@ -78,7 +78,7 @@ export function triggerBookDownload(book: {
   isbn?: string | null;
   publishedYear?: number | null;
 }) {
-  if (book.fileUrl) {
+  if (book.fileUrl && !book.fileUrl.includes("dummy.pdf")) {
     // Attempt to fetch and download the original file directly
     fetch(book.fileUrl)
       .then(response => {
