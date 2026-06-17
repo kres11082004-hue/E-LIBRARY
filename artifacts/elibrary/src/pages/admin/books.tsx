@@ -40,22 +40,6 @@ const emptyForm = {
   coverUrl: "", fileUrl: "", isbn: "", publishedYear: "", isAvailablePhysical: false, totalCopies: "0",
 };
 
-// Derive a simple 3-way book type from form state
-// "none"     = no physical, no digital content
-// "physical" = physical only (no digital content filled)
-// "both"     = physical + digital content
-function getBookType(form: typeof emptyForm): "none" | "physical" | "both" {
-  if (form.isAvailablePhysical && form.content) return "both";
-  if (form.isAvailablePhysical) return "physical";
-  return "none";
-}
-
-function applyBookType(type: "none" | "physical" | "both", form: typeof emptyForm): Partial<typeof emptyForm> {
-  if (type === "none") return { isAvailablePhysical: false, totalCopies: "0" };
-  if (type === "physical") return { isAvailablePhysical: true, totalCopies: form.totalCopies === "0" ? "1" : form.totalCopies };
-  // both: keep any existing content, ensure physical is on
-  return { isAvailablePhysical: true, totalCopies: form.totalCopies === "0" ? "1" : form.totalCopies };
-}
 
 export default function AdminBooksPage() {
   const [search, setSearch] = useState("");
@@ -391,44 +375,86 @@ export default function AdminBooksPage() {
                     <Label>Published Year</Label>
                     <Input type="number" value={form.publishedYear} onChange={set("publishedYear")} placeholder="2024" min="1000" max="2100" />
                   </div>
-                  {/* ── Book Type Selector ── */}
+                  {/* ── Digital Availability ── */}
                   <div className="col-span-2 space-y-2">
-                    <Label>Book Availability</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {([
-                        { value: "none",     label: "None",              desc: "No physical / digital",      icon: "🚫" },
-                        { value: "physical", label: "Physical",           desc: "Library copy only",          icon: "📚" },
-                        { value: "both",     label: "Physical + Digital", desc: "Physical & online readable",  icon: "📖" },
-                      ] as const).map(({ value, label, desc, icon }) => {
-                        const current = getBookType(form);
-                        const active = current === value;
+                    <Label className="flex items-center gap-1.5">🖥️ Digital Content</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["none", "available"] as const).map((v) => {
+                        const hasDigital = !!(form.content || form.fileUrl);
+                        const active = v === "none" ? !hasDigital : hasDigital;
                         return (
                           <button
-                            key={value}
+                            key={v}
                             type="button"
-                            onClick={() => setForm(f => ({ ...f, ...applyBookType(value, f) }))}
+                            onClick={() => {
+                              if (v === "none") setForm(f => ({ ...f, content: "", fileUrl: "" }));
+                              // "available" — user fills content in the Full Text tab or external URL
+                            }}
                             className={`flex flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 text-center transition-all ${
                               active
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-input bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                                ? "border-blue-500 bg-blue-50 text-blue-700"
+                                : "border-input bg-background text-muted-foreground hover:border-blue-300 hover:text-foreground"
                             }`}
                           >
-                            <span className="text-xl">{icon}</span>
-                            <span className="text-xs font-semibold">{label}</span>
-                            <span className="text-[10px] leading-tight opacity-70">{desc}</span>
+                            <span className="text-xl">{v === "none" ? "🚫" : "📄"}</span>
+                            <span className="text-xs font-semibold">{v === "none" ? "None" : "Available"}</span>
+                            <span className="text-[10px] leading-tight opacity-70">
+                              {v === "none" ? "No digital access" : "Full text / external URL"}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
+                    {(form.content || form.fileUrl) && (
+                      <p className="text-xs text-blue-600 font-medium">✓ Digital content is set (Full Text tab or External URL)</p>
+                    )}
+                    {!(form.content || form.fileUrl) && (
+                      <p className="text-xs text-muted-foreground">Add content in the "Full Text Content" tab above, or fill the External Read URL field.</p>
+                    )}
                   </div>
 
-                  {/* Physical copies count — shown only when physical is selected */}
-                  {form.isAvailablePhysical && (
-                    <div className="space-y-2">
-                      <Label>Physical Copies</Label>
-                      <Input type="number" min="1" value={form.totalCopies} onChange={set("totalCopies")} />
+                  {/* ── Physical Availability ── */}
+                  <div className="col-span-2 space-y-2">
+                    <Label className="flex items-center gap-1.5">📚 Physical Copies</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["none", "available"] as const).map((v) => {
+                        const active = v === "none" ? !form.isAvailablePhysical : form.isAvailablePhysical;
+                        return (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => {
+                              if (v === "none") setForm(f => ({ ...f, isAvailablePhysical: false, totalCopies: "0" }));
+                              else setForm(f => ({ ...f, isAvailablePhysical: true, totalCopies: f.totalCopies === "0" ? "1" : f.totalCopies }));
+                            }}
+                            className={`flex flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 text-center transition-all ${
+                              active
+                                ? "border-green-500 bg-green-50 text-green-700"
+                                : "border-input bg-background text-muted-foreground hover:border-green-300 hover:text-foreground"
+                            }`}
+                          >
+                            <span className="text-xl">{v === "none" ? "🚫" : "📚"}</span>
+                            <span className="text-xs font-semibold">{v === "none" ? "None" : "Available"}</span>
+                            <span className="text-[10px] leading-tight opacity-70">
+                              {v === "none" ? "No physical copy" : "Library shelf copy"}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
+                    {form.isAvailablePhysical && (
+                      <div className="flex items-center gap-3 pt-1">
+                        <Label className="text-sm shrink-0">Number of Copies</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          className="w-28"
+                          value={form.totalCopies}
+                          onChange={set("totalCopies")}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
