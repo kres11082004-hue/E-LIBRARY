@@ -31,7 +31,7 @@ const CAMPUSES = [
   "ZDSPGC-Tukuran Campus",
   "ZDSPGC-Vincenzo Sagun Campus",
 ];
-const ROLES = ["All", "student", "instructor", "librarian", "admin"];
+const ROLES = ["All", "student", "instructor", "admin"];
 
 const ROLE_COLORS: Record<string, string> = {
   admin: "bg-purple-100 text-purple-700",
@@ -103,16 +103,11 @@ export default function AdminUsersPage() {
           <Select value={role} onValueChange={setRole}>
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {ROLES.map(r => {
-                let display = r === "All" ? "All Roles" : r;
-                if (r === "admin") display = "Admin/Librarian";
-                if (r === "librarian") display = "Admin/Librarian (Legacy)";
-                return (
-                  <SelectItem key={r} value={r}>
-                    {display}
-                  </SelectItem>
-                );
-              })}
+              {ROLES.map(r => (
+                <SelectItem key={r} value={r}>
+                  {r === "All" ? "All Roles" : r === "admin" ? "Admin / Librarian" : r.charAt(0).toUpperCase() + r.slice(1)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

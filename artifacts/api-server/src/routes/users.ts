@@ -21,13 +21,21 @@ router.get("/users", requireAuth, requireRole("admin", "librarian"), async (req,
     course: usersTable.course,
     year: usersTable.year,
     section: usersTable.section,
+    photoUrl: usersTable.photoUrl,
     isApproved: usersTable.isApproved,
     createdAt: usersTable.createdAt,
   }).from(usersTable);
 
   let filtered = users;
   if (campus) filtered = filtered.filter(u => u.campus === campus);
-  if (role) filtered = filtered.filter(u => u.role === role);
+  // When filtering by "admin", include both admin and librarian roles
+  if (role) {
+    if (role === "admin") {
+      filtered = filtered.filter(u => u.role === "admin" || u.role === "librarian");
+    } else {
+      filtered = filtered.filter(u => u.role === role);
+    }
+  }
   if (course) filtered = filtered.filter(u => u.course === course);
   if (year) filtered = filtered.filter(u => u.year === year);
   if (section) filtered = filtered.filter(u => u.section === section);
@@ -53,6 +61,7 @@ router.get("/users/:id", requireAuth, async (req, res) => {
     course: usersTable.course,
     year: usersTable.year,
     section: usersTable.section,
+    photoUrl: usersTable.photoUrl,
     isApproved: usersTable.isApproved,
     createdAt: usersTable.createdAt,
   }).from(usersTable).where(eq(usersTable.id, id));
