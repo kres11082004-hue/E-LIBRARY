@@ -1,309 +1,406 @@
-import { useRef } from "react";
-import { useGetMonitoringStats, useGetMonitoringByCampus, useGetMonitoringByCourse, useListBorrowRecords, useListUsers } from "@workspace/api-client-react";
+import React, { useState, useMemo } from "react";
+import { useGetBorrowingReport } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Printer, FileText, Users, BookOpen, BookMarked, AlertTriangle, Building, GraduationCap } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, startOfWeek, startOfMonth } from "date-fns";
+import { Printer, FileSpreadsheet, FileText, Search, CalendarIcon, ChevronDown, ChevronUp, BookOpen, Users, Clock, CheckCircle2 } from "lucide-react";
 import { BackButton } from "@/components/back-button";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
-function Section({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
-  return (
-    <div className="mb-8 print:mb-6">
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-primary/30">
-        <Icon className="w-4 h-4 text-primary print:text-black" />
-        <h2 className="font-bold text-base text-foreground print:text-black">{title}</h2>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function StatBox({ label, value, highlight }: { label: string; value: number | string; highlight?: boolean }) {
-  return (
-    <div className={`border rounded-lg p-4 text-center ${highlight ? "border-red-300 bg-red-50 print:border-red-400" : "bg-card print:border-gray-400"}`}>
-      <p className={`text-2xl font-bold ${highlight ? "text-red-600" : "text-foreground"} print:text-black`}>{typeof value === "number" ? value.toLocaleString() : value}</p>
-      <p className="text-xs text-muted-foreground print:text-gray-600 mt-0.5 uppercase tracking-wide font-medium">{label}</p>
-    </div>
-  );
-}
+type DateFilterType = "all" | "daily" | "weekly" | "monthly" | "custom";
 
 export default function AdminReportsPage() {
-  const reportRef = useRef<HTMLDivElement>(null);
+  const [roleTab, setRoleTab] = useState<string>("student");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
+  
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
 
-  const { data: stats } = useGetMonitoringStats();
-  const { data: byCampus = [] } = useGetMonitoringByCampus();
-  const { data: byCourse = [] } = useGetMonitoringByCourse();
-  const { data: borrows = [] } = useListBorrowRecords();
-  const { data: users = [] } = useListUsers();
+  const { startDate, endDate } = useMemo(() => {
+    const today = new Date();
+    if (dateFilterType === "daily") {
+      return { startDate: format(today, "yyyy-MM-dd"), endDate: format(today, "yyyy-MM-dd") };
+    }
+    if (dateFilterType === "weekly") {
+      return { startDate: format(startOfWeek(today), "yyyy-MM-dd"), endDate: format(today, "yyyy-MM-dd") };
+    }
+    if (dateFilterType === "monthly") {
+      return { startDate: format(startOfMonth(today), "yyyy-MM-dd"), endDate: format(today, "yyyy-MM-dd") };
+    }
+    if (dateFilterType === "custom" && customDateRange?.from) {
+      return { 
+        startDate: format(customDateRange.from, "yyyy-MM-dd"), 
+        endDate: customDateRange.to ? format(customDateRange.to, "yyyy-MM-dd") : format(customDateRange.from, "yyyy-MM-dd")
+      };
+    }
+    return { startDate: undefined, endDate: undefined };
+  }, [dateFilterType, customDateRange]);
 
-  const activeBorrows = borrows.filter(b => b.status === "borrowed");
-  const returnedBorrows = borrows.filter(b => b.status === "returned");
-  const overdueBorrows = borrows.filter(b => b.status === "overdue");
-  const pendingUsers = users.filter(u => !u.isApproved);
-  const approvedUsers = users.filter(u => u.isApproved);
+  const { data: rawReportData, isLoading } = useGetBorrowingReport({
+    role: roleTab,
+    startDate,
+    endDate,
+    search: searchQuery || undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined
+  });
 
-  const now = new Date();
-  const reportDate = now.toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
-  const reportTime = now.toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
+  const reportData = rawReportData || [];
+
+  const toggleRow = (userId: number) => {
+    setExpandedRows(prev => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const stats = useMemo(() => {
+    let totalBorrowers = reportData.length;
+    let totalBooks = 0;
+    let totalReturned = 0;
+    let totalOverdue = 0;
+
+    reportData.forEach((user: any) => {
+      totalBooks += user.history?.length || 0;
+      user.history?.forEach((book: any) => {
+        if (book.status === "returned") totalReturned++;
+        else if (book.status === "overdue") totalOverdue++;
+      });
+    });
+
+    return { totalBorrowers, totalBooks, totalReturned, totalOverdue };
+  }, [reportData]);
+
+  const handleExcelExport = () => {
+    const rows: any[] = [];
+    reportData.forEach((user: any) => {
+      user.history?.forEach((book: any) => {
+        rows.push({
+          "Borrower Name": user.fullname,
+          "ID Number": user.studentNumber || "N/A",
+          "Role": user.role,
+          "Course/Dept": user.course || "N/A",
+          "Book Title": book.title,
+          "ISBN": book.isbn || "N/A",
+          "Borrowed Date": format(new Date(book.borrowedAt), "PP"),
+          "Due Date": format(new Date(book.dueDate), "PP"),
+          "Returned Date": book.returnedAt ? format(new Date(book.returnedAt), "PP") : "Not Returned",
+          "Status": book.status.toUpperCase()
+        });
+      });
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Borrowing_Report");
+    XLSX.writeFile(workbook, `Borrowing_Report_${format(new Date(), "yyyyMMdd")}.xlsx`);
+  };
+
+  const handlePDFExport = () => {
+    const doc = new jsPDF();
+    doc.text(`Library Borrowing Report (${roleTab.toUpperCase()})`, 14, 15);
+    
+    const tableData: any[] = [];
+    reportData.forEach((user: any) => {
+      tableData.push([
+        user.fullname, 
+        user.studentNumber || "N/A", 
+        user.course || "N/A", 
+        user.totalBorrowed, 
+        "---", "---", "---"
+      ]);
+      user.history?.forEach((book: any) => {
+        tableData.push([
+          "", "", "Book:", book.title, book.isbn || "N/A", 
+          format(new Date(book.borrowedAt), "PP"), 
+          book.status.toUpperCase()
+        ]);
+      });
+    });
+
+    autoTable(doc, {
+      head: [["Name", "ID", "Course/Dept", "Total", "ISBN", "Borrowed Date", "Status"]],
+      body: tableData,
+      startY: 20,
+      styles: { fontSize: 8 },
+      theme: "grid"
+    });
+
+    doc.save(`Borrowing_Report_${format(new Date(), "yyyyMMdd")}.pdf`);
+  };
 
   const handlePrint = () => {
     window.print();
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <BackButton className="print:hidden" />
-      {/* Screen-only header */}
-      <div className="flex items-center justify-between mb-6 print:hidden">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <FileText className="w-6 h-6 text-primary" />
-            Library Reports
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Comprehensive library system report — printable</p>
-        </div>
-        <Button onClick={handlePrint} className="gap-2 shadow-md">
-          <Printer className="w-4 h-4" />
-          Print Report
-        </Button>
+    <div className="container mx-auto p-6 max-w-7xl print:p-0">
+      <div className="flex items-center gap-4 mb-6 print:hidden">
+        <BackButton />
+        <h1 className="text-3xl font-bold">Library Reports</h1>
       </div>
 
-      {/* Printable report area */}
-      <div ref={reportRef} className="bg-card border rounded-xl p-8 print:p-0 print:border-0 print:shadow-none print:rounded-none">
-
-        {/* Report Header */}
-        <div className="text-center mb-8 pb-6 border-b-2 border-primary/20 print:border-gray-300">
-          <div className="flex items-center justify-center gap-3 mb-3 print:mb-2">
-            <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-14 h-14 rounded-full object-cover print:w-12 print:h-12" />
-            <div className="text-left">
-              <h1 className="text-xl font-bold text-primary print:text-black leading-tight">ZDSPGC E-Library System</h1>
-              <p className="text-sm text-muted-foreground print:text-gray-600">Zamboanga del Sur Provincial Government College</p>
-            </div>
-          </div>
-          <div className="mt-3">
-            <p className="text-lg font-semibold text-foreground print:text-black">Library Status Report</p>
-            <p className="text-sm text-muted-foreground print:text-gray-600 mt-0.5">
-              Generated on {reportDate} at {reportTime}
-            </p>
-          </div>
-        </div>
-
-        {/* Summary Statistics */}
-        {stats && (
-          <Section title="Summary Statistics" icon={BookOpen}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:grid-cols-4">
-              <StatBox label="Total Users" value={stats.totalUsers} />
-              <StatBox label="Total Books" value={stats.totalBooks} />
-              <StatBox label="Active Borrows" value={stats.activeBorrows} />
-              <StatBox label="Overdue Books" value={stats.overdueBooks ?? 0} highlight={(stats.overdueBooks ?? 0) > 0} />
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 print:grid-cols-4">
-              <StatBox label="Returned Books" value={returnedBorrows.length} />
-              <StatBox label="Approved Users" value={approvedUsers.length} />
-              <StatBox label="Pending Approval" value={pendingUsers.length} highlight={pendingUsers.length > 0} />
-              <StatBox label="Total Transactions" value={borrows.length} />
-            </div>
-          </Section>
-        )}
-
-        {/* Borrow Records */}
-        <Section title="Borrow Records" icon={BookMarked}>
-          {borrows.length === 0 ? (
-            <p className="text-sm text-muted-foreground print:text-gray-500 text-center py-4">No borrow records found.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-muted/50 print:bg-gray-100">
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">#</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Borrower</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Campus</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Book Title</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Borrow Date</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Due Date</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {borrows.map((record, i) => (
-                    <tr key={record.id} className={i % 2 === 0 ? "bg-white print:bg-white" : "bg-muted/20 print:bg-gray-50"}>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-500">{i + 1}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 font-medium">{record.user?.fullname ?? "—"}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600 text-xs">{record.user?.campus ?? "—"}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300">{record.book?.title ?? "—"}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600">
-                        {record.borrowedAt ? new Date(record.borrowedAt).toLocaleDateString("en-PH") : "—"}
-                      </td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600">
-                        {record.dueDate ? new Date(record.dueDate).toLocaleDateString("en-PH") : "—"}
-                      </td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300">
-                        <span className={`text-xs font-semibold uppercase print:font-bold ${
-                          record.status === "returned" ? "text-green-600 print:text-black" :
-                          record.status === "overdue" ? "text-red-600 print:text-black" :
-                          "text-amber-600 print:text-black"
-                        }`}>
-                          {record.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-muted/50 print:bg-gray-100 font-semibold">
-                    <td colSpan={6} className="px-3 py-2 border border-border print:border-gray-300 text-sm text-right">Total Records:</td>
-                    <td className="px-3 py-2 border border-border print:border-gray-300 text-sm">{borrows.length}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-          {/* Borrow summary mini stats */}
-          {borrows.length > 0 && (
-            <div className="grid grid-cols-3 gap-3 mt-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center print:border-gray-400">
-                <p className="text-lg font-bold text-amber-700 print:text-black">{activeBorrows.length}</p>
-                <p className="text-xs text-amber-600 print:text-gray-600 font-medium uppercase">Currently Borrowed</p>
-              </div>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center print:border-gray-400">
-                <p className="text-lg font-bold text-green-700 print:text-black">{returnedBorrows.length}</p>
-                <p className="text-xs text-green-600 print:text-gray-600 font-medium uppercase">Returned</p>
-              </div>
-              <div className={`border rounded-lg p-3 text-center print:border-gray-400 ${overdueBorrows.length > 0 ? "bg-red-50 border-red-200" : "bg-muted"}`}>
-                <p className={`text-lg font-bold print:text-black ${overdueBorrows.length > 0 ? "text-red-700" : "text-muted-foreground"}`}>{overdueBorrows.length}</p>
-                <p className={`text-xs font-medium uppercase print:text-gray-600 ${overdueBorrows.length > 0 ? "text-red-600" : "text-muted-foreground"}`}>Overdue</p>
-              </div>
-            </div>
-          )}
-        </Section>
-
-        {/* By Campus */}
-        {byCampus.length > 0 && (
-          <Section title="Users by Campus" icon={Building}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-muted/50 print:bg-gray-100">
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Campus</th>
-                    <th className="text-right px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Students</th>
-                    <th className="text-right px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Instructors</th>
-                    <th className="text-right px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Active Borrows</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {byCampus.map((row, i) => (
-                    <tr key={row.campus} className={i % 2 === 0 ? "bg-white print:bg-white" : "bg-muted/20 print:bg-gray-50"}>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 font-medium">{row.campus}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-right">{row.students}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-right">{row.instructors}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-right font-medium text-amber-600 print:text-black">{row.activeBorrows}</td>
-                    </tr>
-                  ))}
-                  <tr className="bg-muted/50 print:bg-gray-100 font-semibold">
-                    <td className="px-3 py-2 border border-border print:border-gray-300 text-sm">Total</td>
-                    <td className="px-3 py-2 border border-border print:border-gray-300 text-right text-sm">{byCampus.reduce((s, r) => s + r.students, 0)}</td>
-                    <td className="px-3 py-2 border border-border print:border-gray-300 text-right text-sm">{byCampus.reduce((s, r) => s + r.instructors, 0)}</td>
-                    <td className="px-3 py-2 border border-border print:border-gray-300 text-right text-sm">{byCampus.reduce((s, r) => s + r.activeBorrows, 0)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </Section>
-        )}
-
-        {/* By Course */}
-        {byCourse.length > 0 && (
-          <Section title="Students by Course & Year Level" icon={GraduationCap}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-muted/50 print:bg-gray-100">
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Course / Program</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Year & Section</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Campus</th>
-                    <th className="text-right px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Students</th>
-                    <th className="text-right px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Active Borrows</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {byCourse.map((row, i) => (
-                    <tr key={i} className={i % 2 === 0 ? "bg-white print:bg-white" : "bg-muted/20 print:bg-gray-50"}>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 font-medium text-xs">{row.course}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600">{row.year} — Sec {row.section}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600 text-xs">{row.campus}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-right">{row.studentCount}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-right font-medium text-amber-600 print:text-black">{row.activeBorrows}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-        )}
-
-        {/* Users List */}
-        <Section title="Registered Users" icon={Users}>
-          {users.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No users found.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-muted/50 print:bg-gray-100">
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">#</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Full Name</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Email</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Role</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Campus</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Status</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Registered</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user, i) => (
-                    <tr key={user.id} className={i % 2 === 0 ? "bg-white print:bg-white" : "bg-muted/20 print:bg-gray-50"}>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground">{i + 1}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 font-medium">{user.fullname}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600 text-xs">{user.email}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 capitalize text-xs">{user.role === "admin" || user.role === "librarian" ? "Admin/Librarian" : user.role}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600 text-xs">{user.campus}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300">
-                        <span className={`text-xs font-semibold uppercase print:font-bold ${user.isApproved ? "text-green-600 print:text-black" : "text-amber-600 print:text-black"}`}>
-                          {user.isApproved ? "Approved" : "Pending"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600 text-xs">
-                        {new Date(user.createdAt).toLocaleDateString("en-PH")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Section>
-
-        {/* Print footer */}
-        <div className="border-t border-border print:border-gray-300 pt-4 mt-6 text-center">
-          <p className="text-xs text-muted-foreground print:text-gray-500">
-            ZDSPGC E-Library System &mdash; Report generated on {reportDate} at {reportTime}
-          </p>
-          <p className="text-xs text-muted-foreground print:text-gray-500 mt-0.5">
-            Zamboanga del Sur Provincial Government College &mdash; Library Management System
-          </p>
-        </div>
+      {/* Dashboard Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Card className="bg-primary/5 border-primary/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" /> Unique Borrowers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats.totalBorrowers}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Total Books Borrowed
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-700 dark:text-blue-300">{stats.totalBooks}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-900/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" /> Total Returned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.totalReturned}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-destructive/5 border-destructive/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="w-4 h-4 text-destructive" /> Total Overdue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-destructive">{stats.totalOverdue}</div>
+          </CardContent>
+        </Card>
       </div>
 
+      <Tabs value={roleTab} onValueChange={setRoleTab} className="mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+          <TabsList className="print:hidden">
+            <TabsTrigger value="student">Student Borrowing Report</TabsTrigger>
+            <TabsTrigger value="instructor">Instructor Borrowing Report</TabsTrigger>
+          </TabsList>
+
+          <div className="flex gap-2 print:hidden w-full md:w-auto">
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Printer className="w-4 h-4 mr-2" /> Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePDFExport}>
+              <FileText className="w-4 h-4 mr-2" /> Export PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExcelExport}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Excel
+            </Button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-card border rounded-lg p-4 mb-6 print:hidden flex flex-wrap gap-4 items-end">
+          <div className="space-y-1.5 flex-1 min-w-[200px]">
+            <label className="text-xs font-medium text-muted-foreground">Search</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search name, ID, book title, ISBN..."
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5 w-[160px]">
+            <label className="text-xs font-medium text-muted-foreground">Status</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="borrowed">Borrowed</SelectItem>
+                <SelectItem value="returned">Returned</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5 w-[160px]">
+            <label className="text-xs font-medium text-muted-foreground">Date Range</label>
+            <Select value={dateFilterType} onValueChange={(val: any) => setDateFilterType(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="daily">Today</SelectItem>
+                <SelectItem value="weekly">This Week</SelectItem>
+                <SelectItem value="monthly">This Month</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {dateFilterType === "custom" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Custom Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal", !customDateRange?.from && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customDateRange?.from ? (
+                      customDateRange.to ? (
+                        <>
+                          {format(customDateRange.from, "LLL dd, y")} - {format(customDateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(customDateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={customDateRange?.from}
+                    selected={customDateRange}
+                    onSelect={(range: any) => setCustomDateRange(range)}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
+
+        {/* Grouped Table */}
+        <div className="bg-card border rounded-lg shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
+                <tr>
+                  <th className="px-6 py-4 font-medium">Borrower Name</th>
+                  <th className="px-6 py-4 font-medium">ID Number</th>
+                  <th className="px-6 py-4 font-medium">{roleTab === "student" ? "Course" : "Department"}</th>
+                  <th className="px-6 py-4 font-medium text-center">Total Books</th>
+                  <th className="px-6 py-4 font-medium text-right print:hidden">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                      Loading report data...
+                    </td>
+                  </tr>
+                ) : reportData.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                      No borrowing records found matching your filters.
+                    </td>
+                  </tr>
+                ) : (
+                  reportData.map((user: any) => (
+                    <React.Fragment key={user.userId}>
+                      <tr className="hover:bg-muted/30 transition-colors">
+                        <td className="px-6 py-4 font-medium">{user.fullname}</td>
+                        <td className="px-6 py-4">{user.studentNumber || "-"}</td>
+                        <td className="px-6 py-4">{user.course || "-"}</td>
+                        <td className="px-6 py-4 text-center">
+                          <Badge variant="secondary" className="px-3 py-1 text-sm">{user.totalBorrowed}</Badge>
+                        </td>
+                        <td className="px-6 py-4 text-right print:hidden">
+                          <Button variant="ghost" size="sm" onClick={() => toggleRow(user.userId)}>
+                            {expandedRows[user.userId] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </Button>
+                        </td>
+                      </tr>
+                      {expandedRows[user.userId] && (
+                        <tr className="bg-muted/10 print:table-row">
+                          <td colSpan={5} className="px-6 py-4">
+                            <div className="rounded-md border bg-card overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead className="bg-muted text-xs uppercase">
+                                  <tr>
+                                    <th className="px-4 py-2">Book Title</th>
+                                    <th className="px-4 py-2">ISBN</th>
+                                    <th className="px-4 py-2">Borrowed Date</th>
+                                    <th className="px-4 py-2">Due Date</th>
+                                    <th className="px-4 py-2">Return Date</th>
+                                    <th className="px-4 py-2">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                  {user.history?.map((book: any) => (
+                                    <tr key={book.id}>
+                                      <td className="px-4 py-3 font-medium">{book.title}</td>
+                                      <td className="px-4 py-3 text-muted-foreground">{book.isbn || "-"}</td>
+                                      <td className="px-4 py-3">{format(new Date(book.borrowedAt), "MMM d, yyyy")}</td>
+                                      <td className="px-4 py-3">{format(new Date(book.dueDate), "MMM d, yyyy")}</td>
+                                      <td className="px-4 py-3">{book.returnedAt ? format(new Date(book.returnedAt), "MMM d, yyyy") : "-"}</td>
+                                      <td className="px-4 py-3">
+                                        <Badge variant={book.status === "returned" ? "secondary" : book.status === "overdue" ? "destructive" : "default"}>
+                                          {book.status}
+                                        </Badge>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Tabs>
+      
       {/* Print styles */}
       <style>{`
         @media print {
-          @page {
-            margin: 1.5cm;
-            size: A4;
+          body * {
+            visibility: hidden;
           }
-          body * { visibility: hidden; }
-          .print\\:p-0, .print\\:p-0 * { visibility: visible; }
-          [ref] { position: absolute; left: 0; top: 0; width: 100%; }
-          .print\\:hidden { display: none !important; }
-          nav, aside, header { display: none !important; }
+          .container, .container * {
+            visibility: visible;
+          }
+          .container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .print\\:table-row {
+            display: table-row !important;
+          }
         }
       `}</style>
     </div>

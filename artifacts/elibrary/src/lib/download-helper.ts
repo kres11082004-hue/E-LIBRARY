@@ -22,13 +22,21 @@ export function saveDownloadedBook(book: {
   try {
     const raw = localStorage.getItem("downloaded_books");
     const list: DownloadedBook[] = raw ? JSON.parse(raw) : [];
-    if (!list.some(item => item.id === book.id)) {
+    const index = list.findIndex(item => item.id === book.id);
+    
+    if (index === -1) {
       list.push({
         ...book,
         downloadedAt: new Date().toISOString(),
       });
-      localStorage.setItem("downloaded_books", JSON.stringify(list));
+    } else {
+      list[index] = {
+        ...list[index],
+        ...book,
+        downloadedAt: new Date().toISOString(),
+      };
     }
+    localStorage.setItem("downloaded_books", JSON.stringify(list));
   } catch (e) {
     console.error("Failed to save downloaded book", e);
   }

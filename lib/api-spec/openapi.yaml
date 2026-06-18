@@ -697,6 +697,42 @@ paths:
         "404":
           description: Not found
 
+  /reports/borrowing:
+    get:
+      operationId: getBorrowingReport
+      tags: [monitoring]
+      summary: Get advanced grouped borrowing report
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Grouped report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BorrowingReportUser"
+
 components:
   schemas:
     HealthStatus:
@@ -1133,4 +1169,42 @@ components:
           type: string
           enum: [student, instructor]
 
+    BorrowingReportHistoryItem:
+      type: object
+      required: [id, title, borrowedAt, dueDate, status]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        isbn:
+          type: ["string", "null"]
+        borrowedAt:
+          type: string
+        dueDate:
+          type: string
+        returnedAt:
+          type: ["string", "null"]
+        status:
+          type: string
 
+    BorrowingReportUser:
+      type: object
+      required: [userId, fullname, role, totalBorrowed, history]
+      properties:
+        userId:
+          type: integer
+        fullname:
+          type: string
+        studentNumber:
+          type: ["string", "null"]
+        role:
+          type: string
+        course:
+          type: ["string", "null"]
+        totalBorrowed:
+          type: integer
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/BorrowingReportHistoryItem"

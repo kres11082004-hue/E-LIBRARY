@@ -30,8 +30,10 @@ import type {
   BorrowInput,
   BorrowRecord,
   BorrowUpdate,
+  BorrowingReportUser,
   CampusStat,
   CourseStat,
+  GetBorrowingReportParams,
   HealthStatus,
   ImportAuthorizedUsers200,
   ListAuthorizedUsersParams,
@@ -2588,4 +2590,88 @@ export const useVerifyIdentity = <TError = ErrorType<void>,
       > => {
       return useMutation(getVerifyIdentityMutationOptions(options));
     }
+
+export const getGetBorrowingReportUrl = (params?: GetBorrowingReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/borrowing?${stringifiedParams}` : `/api/reports/borrowing`
+}
+
+/**
+ * @summary Get advanced grouped borrowing report
+ */
+export const getBorrowingReport = async (params?: GetBorrowingReportParams, options?: RequestInit): Promise<BorrowingReportUser[]> => {
+
+  return customFetch<BorrowingReportUser[]>(getGetBorrowingReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBorrowingReportQueryKey = (params?: GetBorrowingReportParams,) => {
+    return [
+    `/api/reports/borrowing`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBorrowingReportQueryOptions = <TData = Awaited<ReturnType<typeof getBorrowingReport>>, TError = ErrorType<unknown>>(params?: GetBorrowingReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBorrowingReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBorrowingReportQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBorrowingReport>>> = ({ signal }) => getBorrowingReport(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBorrowingReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBorrowingReportQueryResult = NonNullable<Awaited<ReturnType<typeof getBorrowingReport>>>
+export type GetBorrowingReportQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get advanced grouped borrowing report
+ */
+
+export function useGetBorrowingReport<TData = Awaited<ReturnType<typeof getBorrowingReport>>, TError = ErrorType<unknown>>(
+ params?: GetBorrowingReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBorrowingReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBorrowingReportQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

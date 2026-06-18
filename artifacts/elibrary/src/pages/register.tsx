@@ -196,7 +196,7 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <Label>Full Name</Label>
-                <Input value={form.fullname} onChange={set("fullname")} placeholder="Juan dela Cruz" required />
+                <Input value={form.fullname} onChange={set("fullname")} placeholder="Lastname, First Name M.I" required />
                 <p className="text-xs text-muted-foreground">Must exactly match school records.</p>
               </div>
               {(isStudent || isInstructor) && (

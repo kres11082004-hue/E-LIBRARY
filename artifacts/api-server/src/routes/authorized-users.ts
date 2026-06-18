@@ -36,10 +36,13 @@ router.post("/authorized-users", requireAuth, async (req, res) => {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  const { fullName, schoolId, role, course } = req.body;
+  let { fullName, schoolId, role, course } = req.body;
   if (!fullName || !schoolId || !role) {
     return res.status(400).json({ error: "Full name, school ID, and role are required" });
   }
+  fullName = fullName.trim();
+  schoolId = schoolId.trim();
+  role = role.toLowerCase().trim();
   if (role !== "student" && role !== "instructor") {
     return res.status(400).json({ error: "Role must be 'student' or 'instructor'" });
   }
@@ -61,7 +64,10 @@ router.put("/authorized-users/:id", requireAuth, async (req, res) => {
   }
 
   const id = parseInt(req.params.id as string, 10);
-  const { fullName, schoolId, role, course } = req.body;
+  let { fullName, schoolId, role, course } = req.body;
+  if (fullName) fullName = fullName.trim();
+  if (schoolId) schoolId = schoolId.trim();
+  if (role) role = role.toLowerCase().trim();
 
   const [updated] = await db
     .update(authorizedUsersTable)
@@ -105,11 +111,14 @@ router.post("/authorized-users/import", requireAuth, async (req, res) => {
   let skippedCount = 0;
 
   for (const record of records) {
-    const { fullName, schoolId, role, course } = record;
+    let { fullName, schoolId, role, course } = record;
     if (!fullName || !schoolId || !role) {
       skippedCount++;
       continue;
     }
+    fullName = fullName.trim();
+    schoolId = schoolId.trim();
+    role = role.toLowerCase().trim();
 
     // Check if schoolId exists
     const [existing] = await db.select().from(authorizedUsersTable).where(eq(authorizedUsersTable.schoolId, schoolId));
@@ -138,14 +147,18 @@ router.post("/auth/verify-identity", async (req, res) => {
     return res.status(400).json({ error: "Full name, School/Employee ID, and role are required" });
   }
 
-  // Case-insensitive name match + exact schoolId + role match
+  const trimmedSchoolId = schoolId.trim();
+  const trimmedRole = role.toLowerCase().trim();
+  const trimmedFullName = fullName.trim();
+
+  // Case-insensitive schoolId + role match
   const rows = await db
     .select()
     .from(authorizedUsersTable)
     .where(
       and(
-        eq(authorizedUsersTable.schoolId, schoolId),
-        eq(authorizedUsersTable.role, role)
+        ilike(authorizedUsersTable.schoolId, trimmedSchoolId),
+        ilike(authorizedUsersTable.role, trimmedRole)
       )
     );
 
@@ -156,7 +169,7 @@ router.post("/auth/verify-identity", async (req, res) => {
   const record = rows[0];
 
   // Case-insensitive name comparison
-  if (record.fullName.toLowerCase().trim() !== fullName.toLowerCase().trim()) {
+  if (record.fullName.toLowerCase().trim() !== trimmedFullName.toLowerCase()) {
     return res.status(400).json({ error: "The name you entered does not match the record for this School/Employee ID." });
   }
 

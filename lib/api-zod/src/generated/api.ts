@@ -693,3 +693,34 @@ export const VerifyIdentityResponse = zod.object({
 })
 
 
+/**
+ * @summary Get advanced grouped borrowing report
+ */
+export const GetBorrowingReportQueryParams = zod.object({
+  "role": zod.coerce.string().optional(),
+  "startDate": zod.coerce.string().optional(),
+  "endDate": zod.coerce.string().optional(),
+  "search": zod.coerce.string().optional(),
+  "status": zod.coerce.string().optional()
+})
+
+export const GetBorrowingReportResponseItem = zod.object({
+  "userId": zod.number(),
+  "fullname": zod.string(),
+  "studentNumber": zod.string().nullish(),
+  "role": zod.string(),
+  "course": zod.string().nullish(),
+  "totalBorrowed": zod.number(),
+  "history": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "isbn": zod.string().nullish(),
+  "borrowedAt": zod.string(),
+  "dueDate": zod.string(),
+  "returnedAt": zod.string().nullish(),
+  "status": zod.string()
+}))
+})
+export const GetBorrowingReportResponse = zod.array(GetBorrowingReportResponseItem)
+
+

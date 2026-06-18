@@ -335,6 +335,30 @@ export interface VerifyIdentityInput {
   role: VerifyIdentityInputRole;
 }
 
+export interface BorrowingReportHistoryItem {
+  id: number;
+  title: string;
+  /** @nullable */
+  isbn?: string | null;
+  borrowedAt: string;
+  dueDate: string;
+  /** @nullable */
+  returnedAt?: string | null;
+  status: string;
+}
+
+export interface BorrowingReportUser {
+  userId: number;
+  fullname: string;
+  /** @nullable */
+  studentNumber?: string | null;
+  role: string;
+  /** @nullable */
+  course?: string | null;
+  totalBorrowed: number;
+  history: BorrowingReportHistoryItem[];
+}
+
 export type ListUsersParams = {
 campus?: string;
 role?: string;
@@ -369,5 +393,13 @@ export type VerifyIdentity200 = {
   valid: boolean;
   authorizedUserId: number;
   fullName: string;
+};
+
+export type GetBorrowingReportParams = {
+role?: string;
+startDate?: string;
+endDate?: string;
+search?: string;
+status?: string;
 };
 
