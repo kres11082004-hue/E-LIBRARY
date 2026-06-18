@@ -121,15 +121,19 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Student Info */}
-      {user.role === "student" && (
+      {/* Academic Info */}
+      {(user.role === "student" || user.role === "instructor") && (
         <div className="bg-card border rounded-xl p-6 space-y-4">
           <h3 className="font-semibold text-foreground">Academic Information</h3>
           <div className="grid gap-4">
-            <InfoRow icon={Hash} label="Student Number" value={user.studentNumber} />
-            <InfoRow icon={GraduationCap} label="Course" value={user.course} />
-            <InfoRow icon={BookOpen} label="Year Level" value={user.year} />
-            <InfoRow icon={User} label="Section" value={user.section} />
+            <InfoRow icon={Hash} label="School ID Number" value={user.studentNumber} />
+            {user.role === "student" && (
+              <>
+                <InfoRow icon={GraduationCap} label="Course" value={user.course} />
+                <InfoRow icon={BookOpen} label="Year Level" value={user.year} />
+                <InfoRow icon={User} label="Section" value={user.section} />
+              </>
+            )}
           </div>
         </div>
       )}

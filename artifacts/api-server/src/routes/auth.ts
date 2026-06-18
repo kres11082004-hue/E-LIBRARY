@@ -50,8 +50,12 @@ router.post("/auth/register", async (req, res) => {
     return res.status(400).json({ error: "All required fields must be provided (including profile photo)" });
   }
 
-  if (role === "student" && (!studentNumber || !course || !year || !section)) {
-    return res.status(400).json({ error: "Student number, course, year, and section are required for students" });
+  if ((role === "student" || role === "instructor") && !studentNumber) {
+    return res.status(400).json({ error: "School ID Number is required" });
+  }
+
+  if (role === "student" && (!course || !year || !section)) {
+    return res.status(400).json({ error: "Course, year, and section are required for students" });
   }
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));

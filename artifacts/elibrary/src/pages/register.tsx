@@ -68,7 +68,8 @@ export default function RegisterPage() {
     setForm(f => ({ ...f, [field]: e.target.value }));
 
   const isStudent = form.role === "student";
-  const totalSteps = isStudent ? 3 : 2;
+  const isInstructor = form.role === "instructor";
+  const totalSteps = (isStudent || isInstructor) ? 3 : 2;
   const isAssociate = ASSOCIATE_COURSES.has(form.course);
   const yearOptions = isAssociate ? ASSOCIATE_YEAR_OPTIONS : YEAR_OPTIONS;
 
@@ -96,7 +97,7 @@ export default function RegisterPage() {
           campus: form.campus,
           role: form.role as RegisterInputRole,
           photoUrl: form.photoUrl,
-          studentNumber: isStudent ? form.studentNumber : undefined,
+          studentNumber: (isStudent || isInstructor) ? form.studentNumber : undefined,
           course: isStudent ? form.course : undefined,
           year: isStudent ? form.year : undefined,
           section: isStudent ? form.section : undefined,
@@ -237,41 +238,45 @@ export default function RegisterPage() {
             </>
           )}
 
-          {step === 3 && isStudent && (
+          {step === 3 && (isStudent || isInstructor) && (
             <>
               <div className="space-y-2">
-                <Label>Student Number</Label>
-                <Input value={form.studentNumber} onChange={set("studentNumber")} placeholder="2024-00001" required />
+                <Label>School ID Number</Label>
+                <Input value={form.studentNumber} onChange={set("studentNumber")} placeholder="e.g. 2024-00001" required />
               </div>
-              <div className="space-y-2">
-                <Label>Course / Program</Label>
-                <Select value={form.course} onValueChange={handleCourseChange}>
-                  <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
-                  <SelectContent>
-                    {COURSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {isAssociate && (
-                  <p className="text-xs text-amber-600">Associate programs are 1st–2nd year only.</p>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Year Level</Label>
-                  <Select value={form.year} onValueChange={(v) => setForm(f => ({ ...f, year: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-                    <SelectContent>
-                      {yearOptions.map(y => (
-                        <SelectItem key={y} value={y}>{y}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Section</Label>
-                  <Input value={form.section} onChange={set("section")} placeholder="e.g. A" required />
-                </div>
-              </div>
+              {isStudent && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Course / Program</Label>
+                    <Select value={form.course} onValueChange={handleCourseChange}>
+                      <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
+                      <SelectContent>
+                        {COURSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {isAssociate && (
+                      <p className="text-xs text-amber-600">Associate programs are 1st–2nd year only.</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Year Level</Label>
+                      <Select value={form.year} onValueChange={(v) => setForm(f => ({ ...f, year: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
+                        <SelectContent>
+                          {yearOptions.map(y => (
+                            <SelectItem key={y} value={y}>{y}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Section</Label>
+                      <Input value={form.section} onChange={set("section")} placeholder="e.g. A" required />
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
 

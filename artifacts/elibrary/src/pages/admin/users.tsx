@@ -225,24 +225,28 @@ export default function AdminUsersPage() {
                 <span className="text-muted-foreground line-clamp-2">{selectedUser.address || "—"}</span>
               </div>
               
-              {selectedUser.role === "student" && (
+              {(selectedUser.role === "student" || selectedUser.role === "instructor") && (
                 <>
                   <div className="h-px bg-border my-2" />
                   <div className="flex items-center gap-3 text-sm text-foreground">
-                    <GraduationCap className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="font-medium shrink-0">Course:</span> 
-                    <span className="text-muted-foreground truncate">{selectedUser.course || "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-foreground">
-                    <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="font-medium shrink-0">Year/Sec:</span> 
-                    <span className="text-muted-foreground">{selectedUser.year ? `${selectedUser.year} — Sec ${selectedUser.section}` : "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-foreground">
                     <Users className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="font-medium shrink-0">Student No:</span> 
+                    <span className="font-medium shrink-0">School ID No:</span> 
                     <span className="text-muted-foreground font-mono">{selectedUser.studentNumber || "—"}</span>
                   </div>
+                  {selectedUser.role === "student" && (
+                    <>
+                      <div className="flex items-center gap-3 text-sm text-foreground">
+                        <GraduationCap className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium shrink-0">Course:</span> 
+                        <span className="text-muted-foreground truncate">{selectedUser.course || "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-foreground">
+                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium shrink-0">Year/Sec:</span> 
+                        <span className="text-muted-foreground">{selectedUser.year ? `${selectedUser.year} — Sec ${selectedUser.section}` : "—"}</span>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
