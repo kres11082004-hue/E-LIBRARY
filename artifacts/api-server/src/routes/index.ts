@@ -8,6 +8,7 @@ import reservationsRouter from "./reservations";
 import mylistRouter from "./mylist";
 import borrowRouter from "./borrow";
 import monitoringRouter from "./monitoring";
+import authorizedUsersRouter from "./authorized-users";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(reservationsRouter);
 router.use(mylistRouter);
 router.use(borrowRouter);
 router.use(monitoringRouter);
+router.use(authorizedUsersRouter);
 
 export default router;

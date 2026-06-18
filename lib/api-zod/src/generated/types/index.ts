@@ -7,6 +7,9 @@
  */
 
 export * from './activityItem';
+export * from './authorizedUser';
+export * from './authorizedUserInput';
+export * from './authorizedUserInputRole';
 export * from './authResponse';
 export * from './book';
 export * from './bookInput';
@@ -19,6 +22,8 @@ export * from './borrowUpdateStatus';
 export * from './campusStat';
 export * from './courseStat';
 export * from './healthStatus';
+export * from './importAuthorizedUsers200';
+export * from './listAuthorizedUsersParams';
 export * from './listBooksParams';
 export * from './listBorrowRecordsParams';
 export * from './listUsersParams';
@@ -35,3 +40,6 @@ export * from './reservationUpdate';
 export * from './reservationUpdateStatus';
 export * from './user';
 export * from './userUpdate';
+export * from './verifyIdentity200';
+export * from './verifyIdentityInput';
+export * from './verifyIdentityInputRole';

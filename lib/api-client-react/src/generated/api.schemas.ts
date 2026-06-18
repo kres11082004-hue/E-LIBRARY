@@ -40,6 +40,8 @@ export interface RegisterInput {
   year?: string | null;
   /** @nullable */
   section?: string | null;
+  /** @nullable */
+  authorizedUserId?: number | null;
 }
 
 export interface User {
@@ -291,6 +293,48 @@ export interface ActivityItem {
   createdAt: string;
 }
 
+export interface AuthorizedUser {
+  id: number;
+  fullName: string;
+  schoolId: string;
+  role: string;
+  /** @nullable */
+  course?: string | null;
+  /** @nullable */
+  linkedUserId?: number | null;
+  createdAt: string;
+}
+
+export type AuthorizedUserInputRole = typeof AuthorizedUserInputRole[keyof typeof AuthorizedUserInputRole];
+
+
+export const AuthorizedUserInputRole = {
+  student: 'student',
+  instructor: 'instructor',
+} as const;
+
+export interface AuthorizedUserInput {
+  fullName: string;
+  schoolId: string;
+  role: AuthorizedUserInputRole;
+  /** @nullable */
+  course?: string | null;
+}
+
+export type VerifyIdentityInputRole = typeof VerifyIdentityInputRole[keyof typeof VerifyIdentityInputRole];
+
+
+export const VerifyIdentityInputRole = {
+  student: 'student',
+  instructor: 'instructor',
+} as const;
+
+export interface VerifyIdentityInput {
+  fullName: string;
+  schoolId: string;
+  role: VerifyIdentityInputRole;
+}
+
 export type ListUsersParams = {
 campus?: string;
 role?: string;
@@ -308,5 +352,22 @@ campus?: string;
 export type ListBorrowRecordsParams = {
 userId?: number;
 status?: string;
+};
+
+export type ListAuthorizedUsersParams = {
+search?: string;
+role?: string;
+};
+
+export type ImportAuthorizedUsers200 = {
+  success?: boolean;
+  importedCount?: number;
+  skippedCount?: number;
+};
+
+export type VerifyIdentity200 = {
+  valid: boolean;
+  authorizedUserId: number;
+  fullName: string;
 };
 

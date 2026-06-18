@@ -60,7 +60,8 @@ export const RegisterBody = zod.object({
   "studentNumber": zod.string().nullish(),
   "course": zod.string().nullish(),
   "year": zod.string().nullish(),
-  "section": zod.string().nullish()
+  "section": zod.string().nullish(),
+  "authorizedUserId": zod.number().nullish()
 })
 
 
@@ -592,5 +593,103 @@ export const GetRecentActivityResponseItem = zod.object({
   "createdAt": zod.string()
 })
 export const GetRecentActivityResponse = zod.array(GetRecentActivityResponseItem)
+
+
+/**
+ * @summary List authorized users
+ */
+export const ListAuthorizedUsersQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "role": zod.coerce.string().optional()
+})
+
+export const ListAuthorizedUsersResponseItem = zod.object({
+  "id": zod.number(),
+  "fullName": zod.string(),
+  "schoolId": zod.string(),
+  "role": zod.string(),
+  "course": zod.string().nullish(),
+  "linkedUserId": zod.number().nullish(),
+  "createdAt": zod.string()
+})
+export const ListAuthorizedUsersResponse = zod.array(ListAuthorizedUsersResponseItem)
+
+
+/**
+ * @summary Create an authorized user
+ */
+export const CreateAuthorizedUserBody = zod.object({
+  "fullName": zod.string(),
+  "schoolId": zod.string(),
+  "role": zod.enum(['student', 'instructor']),
+  "course": zod.string().nullish()
+})
+
+
+/**
+ * @summary Import authorized users from a CSV
+ */
+export const ImportAuthorizedUsersBodyItem = zod.object({
+  "fullName": zod.string(),
+  "schoolId": zod.string(),
+  "role": zod.enum(['student', 'instructor']),
+  "course": zod.string().nullish()
+})
+export const ImportAuthorizedUsersBody = zod.array(ImportAuthorizedUsersBodyItem)
+
+export const ImportAuthorizedUsersResponse = zod.object({
+  "success": zod.boolean().optional(),
+  "importedCount": zod.number().optional(),
+  "skippedCount": zod.number().optional()
+})
+
+
+/**
+ * @summary Update an authorized user
+ */
+export const UpdateAuthorizedUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateAuthorizedUserBody = zod.object({
+  "fullName": zod.string(),
+  "schoolId": zod.string(),
+  "role": zod.enum(['student', 'instructor']),
+  "course": zod.string().nullish()
+})
+
+export const UpdateAuthorizedUserResponse = zod.object({
+  "id": zod.number(),
+  "fullName": zod.string(),
+  "schoolId": zod.string(),
+  "role": zod.string(),
+  "course": zod.string().nullish(),
+  "linkedUserId": zod.number().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete an authorized user
+ */
+export const DeleteAuthorizedUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Verify student/instructor identity against authorized list
+ */
+export const VerifyIdentityBody = zod.object({
+  "fullName": zod.string(),
+  "schoolId": zod.string(),
+  "role": zod.enum(['student', 'instructor'])
+})
+
+export const VerifyIdentityResponse = zod.object({
+  "valid": zod.boolean(),
+  "authorizedUserId": zod.number(),
+  "fullName": zod.string()
+})
 
 

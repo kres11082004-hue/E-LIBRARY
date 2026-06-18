@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRegister } from "@workspace/api-client-react";
+import { useRegister, useVerifyIdentity } from "@workspace/api-client-react";
 import type { RegisterInputRole } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { useLocation, Link } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Library, Eye, EyeOff, ChevronLeft, User } from "lucide-react";
-import { FaceScanner } from "@/components/face-scanner";
 
 const CAMPUSES = [
   "ZDSPGC-Dimataling Campus",
@@ -64,15 +63,16 @@ export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const registerMutation = useRegister();
+  const verifyMutation = useVerifyIdentity();
+  const [authorizedUserId, setAuthorizedUserId] = useState<number | null>(null);
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }));
 
   const isStudent = form.role === "student";
   const isInstructor = form.role === "instructor";
-  const baseSteps = (isStudent || isInstructor) ? 3 : 2;
-  const totalSteps = baseSteps + 1; // Final step is Face Scanner
-  const [livenessVerified, setLivenessVerified] = useState(false);
+  const isAdmin = form.role === "admin";
+  const totalSteps = isStudent ? 4 : 3;
   const isAssociate = ASSOCIATE_COURSES.has(form.course);
   const yearOptions = isAssociate ? ASSOCIATE_YEAR_OPTIONS : YEAR_OPTIONS;
 
@@ -86,13 +86,36 @@ export default function RegisterPage() {
     }));
   };
 
+  const handleNext = async () => {
+    if (step === 1 && (isStudent || isInstructor)) {
+      try {
+        const res = await verifyMutation.mutateAsync({
+          data: {
+            fullName: form.fullname,
+            schoolId: form.studentNumber,
+            role: form.role as "student" | "instructor"
+          }
+        });
+        if (res.valid) {
+          setAuthorizedUserId(res.authorizedUserId);
+          toast({ title: "Identity Verified", description: `Welcome, ${res.fullName}` });
+          setStep(2);
+        }
+      } catch (err: any) {
+        const msg = err?.data?.error || err?.response?.data?.error || "Identity verification failed.";
+        toast({ title: "Verification Failed", description: msg, variant: "destructive" });
+        return;
+      }
+    } else {
+      setStep(s => s + 1);
+    }
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (step < totalSteps) { setStep(s => s + 1); return; }
-    
-    if (!livenessVerified) {
-      toast({ title: "Verification required", description: "Please complete the face liveness verification to continue.", variant: "destructive" });
-      return;
+    if (step < totalSteps) { 
+      handleNext();
+      return; 
     }
 
     try {
@@ -110,6 +133,7 @@ export default function RegisterPage() {
           course: isStudent ? form.course : undefined,
           year: isStudent ? form.year : undefined,
           section: isStudent ? form.section : undefined,
+          authorizedUserId: authorizedUserId,
         },
       });
       toast({ title: "Account created successfully!", description: "Please sign in with your email and password." });
@@ -158,7 +182,10 @@ export default function RegisterPage() {
             <>
               <div className="space-y-2">
                 <Label>I am a</Label>
-                <Select value={form.role} onValueChange={(v) => setForm(f => ({ ...f, role: v }))}>
+                <Select value={form.role} onValueChange={(v) => {
+                  setForm(f => ({ ...f, role: v, studentNumber: "" }));
+                  setAuthorizedUserId(null);
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
@@ -170,7 +197,19 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <Label>Full Name</Label>
                 <Input value={form.fullname} onChange={set("fullname")} placeholder="Juan dela Cruz" required />
+                <p className="text-xs text-muted-foreground">Must exactly match school records.</p>
               </div>
+              {(isStudent || isInstructor) && (
+                <div className="space-y-2">
+                  <Label>{isStudent ? "School ID Number" : "Employee ID Number"}</Label>
+                  <Input value={form.studentNumber} onChange={set("studentNumber")} placeholder="e.g. 2024-00001" required />
+                </div>
+              )}
+            </>
+          )}
+
+          {step === 2 && (
+            <>
               <div className="space-y-2">
                 <Label>Email Address</Label>
                 <Input type="email" value={form.email} onChange={set("email")} placeholder="username@zdspgc.edu.ph" required />
@@ -195,7 +234,7 @@ export default function RegisterPage() {
             </>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <>
               <div className="space-y-2">
                 <Label>Phone Number</Label>
@@ -247,73 +286,50 @@ export default function RegisterPage() {
             </>
           )}
 
-          {step === 3 && (isStudent || isInstructor) && (
+          {step === 4 && isStudent && (
             <>
               <div className="space-y-2">
-                <Label>School ID Number</Label>
-                <Input value={form.studentNumber} onChange={set("studentNumber")} placeholder="e.g. 2024-00001" required />
+                <Label>Course</Label>
+                <Select value={form.course} onValueChange={handleCourseChange}>
+                  <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
+                  <SelectContent>
+                    {COURSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-              {isStudent && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Course / Program</Label>
-                    <Select value={form.course} onValueChange={handleCourseChange}>
-                      <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
-                      <SelectContent>
-                        {COURSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {isAssociate && (
-                      <p className="text-xs text-amber-600">Associate programs are 1st–2nd year only.</p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Year Level</Label>
-                      <Select value={form.year} onValueChange={(v) => setForm(f => ({ ...f, year: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-                        <SelectContent>
-                          {yearOptions.map(y => (
-                            <SelectItem key={y} value={y}>{y}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Section</Label>
-                      <Input value={form.section} onChange={set("section")} placeholder="e.g. A" required />
-                    </div>
-                  </div>
-                </>
-              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Year Level</Label>
+                  <Select value={form.year} onValueChange={(v) => setForm(f => ({ ...f, year: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Section</Label>
+                  <Input value={form.section} onChange={set("section")} placeholder="e.g. A" required />
+                </div>
+              </div>
             </>
-          )}
-
-          {step === totalSteps && (
-            <div className="space-y-4 pt-2">
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold text-foreground">Face Verification</h3>
-                <p className="text-sm text-muted-foreground mt-1">Please complete this quick liveness check to prove you are human.</p>
-              </div>
-              <FaceScanner onSuccess={() => setLivenessVerified(true)} />
-            </div>
           )}
 
           <div className="flex gap-3 pt-4 mt-6 border-t">
             {step > 1 && (
-              <Button type="button" variant="outline" onClick={() => setStep(s => s - 1)} className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setStep(s => s - 1)} className="gap-2" disabled={verifyMutation.isPending || registerMutation.isPending}>
                 <ChevronLeft className="w-4 h-4" /> Back
               </Button>
             )}
-            {step < totalSteps ? (
-              <Button type="submit" className="flex-1" disabled={step === 2 && (!form.campus || !form.photoUrl)}>
-                Continue
-              </Button>
-            ) : (
-              <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={!livenessVerified || registerMutation.isPending}>
-                {registerMutation.isPending ? "Creating account..." : "Complete Registration"}
-              </Button>
-            )}
+            <Button 
+              type="submit" 
+              className="flex-1" 
+              disabled={registerMutation.isPending || verifyMutation.isPending || (step === 3 && (!form.campus || !form.photoUrl))}
+            >
+              {verifyMutation.isPending ? "Verifying..." :
+                registerMutation.isPending ? "Creating account..." :
+                  step < totalSteps ? "Continue" : "Complete Registration"}
+            </Button>
           </div>
         </form>
 

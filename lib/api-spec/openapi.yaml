@@ -23,6 +23,8 @@ tags:
     description: Admin monitoring
   - name: reservations
     description: Physical book reservations
+  - name: authorized-users
+    description: Authorized user records for registration verification
 
 paths:
   /healthz:
@@ -551,6 +553,150 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActivityItem"
 
+  /authorized-users:
+    get:
+      operationId: listAuthorizedUsers
+      tags: [authorized-users]
+      summary: List authorized users
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of authorized users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthorizedUser"
+
+    post:
+      operationId: createAuthorizedUser
+      tags: [authorized-users]
+      summary: Create an authorized user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizedUserInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizedUser"
+        "400":
+          description: Bad request
+
+  /authorized-users/import:
+    post:
+      operationId: importAuthorizedUsers
+      tags: [authorized-users]
+      summary: Import authorized users from a CSV
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/AuthorizedUserInput"
+      responses:
+        "200":
+          description: Imported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  importedCount:
+                    type: integer
+                  skippedCount:
+                    type: integer
+        "400":
+          description: Bad request
+
+  /authorized-users/{id}:
+    put:
+      operationId: updateAuthorizedUser
+      tags: [authorized-users]
+      summary: Update an authorized user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizedUserInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizedUser"
+
+    delete:
+      operationId: deleteAuthorizedUser
+      tags: [authorized-users]
+      summary: Delete an authorized user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
+  /auth/verify-identity:
+    post:
+      operationId: verifyIdentity
+      tags: [auth]
+      summary: Verify student/instructor identity against authorized list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyIdentityInput"
+      responses:
+        "200":
+          description: Valid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [valid, authorizedUserId, fullName]
+                properties:
+                  valid:
+                    type: boolean
+                  authorizedUserId:
+                    type: integer
+                  fullName:
+                    type: string
+        "400":
+          description: Invalid match or already linked
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -598,6 +744,8 @@ components:
           type: ["string", "null"]
         section:
           type: ["string", "null"]
+        authorizedUserId:
+          type: ["integer", "null"]
 
     AuthResponse:
       type: object
@@ -939,3 +1087,50 @@ components:
           type: string
         createdAt:
           type: string
+
+    AuthorizedUser:
+      type: object
+      required: [id, fullName, schoolId, role, createdAt]
+      properties:
+        id:
+          type: integer
+        fullName:
+          type: string
+        schoolId:
+          type: string
+        role:
+          type: string
+        course:
+          type: ["string", "null"]
+        linkedUserId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    AuthorizedUserInput:
+      type: object
+      required: [fullName, schoolId, role]
+      properties:
+        fullName:
+          type: string
+        schoolId:
+          type: string
+        role:
+          type: string
+          enum: [student, instructor]
+        course:
+          type: ["string", "null"]
+
+    VerifyIdentityInput:
+      type: object
+      required: [fullName, schoolId, role]
+      properties:
+        fullName:
+          type: string
+        schoolId:
+          type: string
+        role:
+          type: string
+          enum: [student, instructor]
+
+

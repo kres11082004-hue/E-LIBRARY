@@ -24,4 +24,6 @@ export interface RegisterInput {
   year?: string | null;
   /** @nullable */
   section?: string | null;
+  /** @nullable */
+  authorizedUserId?: number | null;
 }

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, authorizedUsersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { requireAuth, generateToken, revokeToken, getUserByToken } from "../middlewares/auth.js";
@@ -44,7 +44,7 @@ router.post("/auth/login", async (req, res) => {
 
 // POST /auth/register
 router.post("/auth/register", async (req, res) => {
-  const { fullname, email, password, phone, address, campus, role, studentNumber, course, year, section, photoUrl } = req.body;
+  const { fullname, email, password, phone, address, campus, role, studentNumber, course, year, section, photoUrl, authorizedUserId } = req.body;
 
   if (!fullname || !email || !password || !phone || !address || !campus || !role || !photoUrl) {
     return res.status(400).json({ error: "All required fields must be provided (including profile photo)" });
@@ -61,6 +61,20 @@ router.post("/auth/register", async (req, res) => {
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) {
     return res.status(400).json({ error: "Email already registered" });
+  }
+
+  // For students and instructors, verify against authorized users list
+  if (role === "student" || role === "instructor") {
+    if (!authorizedUserId) {
+      return res.status(400).json({ error: "Identity verification is required. Please verify your identity first." });
+    }
+    const [authRecord] = await db.select().from(authorizedUsersTable).where(eq(authorizedUsersTable.id, authorizedUserId));
+    if (!authRecord) {
+      return res.status(400).json({ error: "Invalid authorized user record." });
+    }
+    if (authRecord.linkedUserId) {
+      return res.status(400).json({ error: "An account has already been created for this School/Employee ID." });
+    }
   }
 
   const passwordHash = hashPassword(password);
@@ -80,6 +94,11 @@ router.post("/auth/register", async (req, res) => {
     section: section || null,
     isApproved: isAdmin, // admins auto-approved, others need approval
   }).returning();
+
+  // Link the authorized user record
+  if ((role === "student" || role === "instructor") && authorizedUserId) {
+    await db.update(authorizedUsersTable).set({ linkedUserId: user.id }).where(eq(authorizedUsersTable.id, authorizedUserId));
+  }
 
   // Log activity
   await db.insert(activityLogTable).values({

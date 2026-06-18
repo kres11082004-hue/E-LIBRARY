@@ -22,6 +22,8 @@ import type {
 import type {
   ActivityItem,
   AuthResponse,
+  AuthorizedUser,
+  AuthorizedUserInput,
   Book,
   BookInput,
   BookUpdate,
@@ -31,6 +33,8 @@ import type {
   CampusStat,
   CourseStat,
   HealthStatus,
+  ImportAuthorizedUsers200,
+  ListAuthorizedUsersParams,
   ListBooksParams,
   ListBorrowRecordsParams,
   ListUsersParams,
@@ -43,7 +47,9 @@ import type {
   ReservationInput,
   ReservationUpdate,
   User,
-  UserUpdate
+  UserUpdate,
+  VerifyIdentity200,
+  VerifyIdentityInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2143,4 +2149,443 @@ export function useGetRecentActivity<TData = Awaited<ReturnType<typeof getRecent
 
 
 
+
+export const getListAuthorizedUsersUrl = (params?: ListAuthorizedUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/authorized-users?${stringifiedParams}` : `/api/authorized-users`
+}
+
+/**
+ * @summary List authorized users
+ */
+export const listAuthorizedUsers = async (params?: ListAuthorizedUsersParams, options?: RequestInit): Promise<AuthorizedUser[]> => {
+
+  return customFetch<AuthorizedUser[]>(getListAuthorizedUsersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAuthorizedUsersQueryKey = (params?: ListAuthorizedUsersParams,) => {
+    return [
+    `/api/authorized-users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAuthorizedUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAuthorizedUsers>>, TError = ErrorType<unknown>>(params?: ListAuthorizedUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAuthorizedUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAuthorizedUsersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAuthorizedUsers>>> = ({ signal }) => listAuthorizedUsers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAuthorizedUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAuthorizedUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listAuthorizedUsers>>>
+export type ListAuthorizedUsersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List authorized users
+ */
+
+export function useListAuthorizedUsers<TData = Awaited<ReturnType<typeof listAuthorizedUsers>>, TError = ErrorType<unknown>>(
+ params?: ListAuthorizedUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAuthorizedUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAuthorizedUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateAuthorizedUserUrl = () => {
+
+
+
+
+  return `/api/authorized-users`
+}
+
+/**
+ * @summary Create an authorized user
+ */
+export const createAuthorizedUser = async (authorizedUserInput: AuthorizedUserInput, options?: RequestInit): Promise<AuthorizedUser> => {
+
+  return customFetch<AuthorizedUser>(getCreateAuthorizedUserUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      authorizedUserInput,)
+  }
+);}
+
+
+
+
+export const getCreateAuthorizedUserMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAuthorizedUser>>, TError,{data: BodyType<AuthorizedUserInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAuthorizedUser>>, TError,{data: BodyType<AuthorizedUserInput>}, TContext> => {
+
+const mutationKey = ['createAuthorizedUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAuthorizedUser>>, {data: BodyType<AuthorizedUserInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAuthorizedUser(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAuthorizedUserMutationResult = NonNullable<Awaited<ReturnType<typeof createAuthorizedUser>>>
+    export type CreateAuthorizedUserMutationBody = BodyType<AuthorizedUserInput>
+    export type CreateAuthorizedUserMutationError = ErrorType<void>
+
+    /**
+ * @summary Create an authorized user
+ */
+export const useCreateAuthorizedUser = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAuthorizedUser>>, TError,{data: BodyType<AuthorizedUserInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAuthorizedUser>>,
+        TError,
+        {data: BodyType<AuthorizedUserInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAuthorizedUserMutationOptions(options));
+    }
+
+export const getImportAuthorizedUsersUrl = () => {
+
+
+
+
+  return `/api/authorized-users/import`
+}
+
+/**
+ * @summary Import authorized users from a CSV
+ */
+export const importAuthorizedUsers = async (authorizedUserInput: AuthorizedUserInput[], options?: RequestInit): Promise<ImportAuthorizedUsers200> => {
+
+  return customFetch<ImportAuthorizedUsers200>(getImportAuthorizedUsersUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      authorizedUserInput,)
+  }
+);}
+
+
+
+
+export const getImportAuthorizedUsersMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importAuthorizedUsers>>, TError,{data: BodyType<AuthorizedUserInput[]>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importAuthorizedUsers>>, TError,{data: BodyType<AuthorizedUserInput[]>}, TContext> => {
+
+const mutationKey = ['importAuthorizedUsers'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importAuthorizedUsers>>, {data: BodyType<AuthorizedUserInput[]>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importAuthorizedUsers(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportAuthorizedUsersMutationResult = NonNullable<Awaited<ReturnType<typeof importAuthorizedUsers>>>
+    export type ImportAuthorizedUsersMutationBody = BodyType<AuthorizedUserInput[]>
+    export type ImportAuthorizedUsersMutationError = ErrorType<void>
+
+    /**
+ * @summary Import authorized users from a CSV
+ */
+export const useImportAuthorizedUsers = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importAuthorizedUsers>>, TError,{data: BodyType<AuthorizedUserInput[]>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importAuthorizedUsers>>,
+        TError,
+        {data: BodyType<AuthorizedUserInput[]>},
+        TContext
+      > => {
+      return useMutation(getImportAuthorizedUsersMutationOptions(options));
+    }
+
+export const getUpdateAuthorizedUserUrl = (id: number,) => {
+
+
+
+
+  return `/api/authorized-users/${id}`
+}
+
+/**
+ * @summary Update an authorized user
+ */
+export const updateAuthorizedUser = async (id: number,
+    authorizedUserInput: AuthorizedUserInput, options?: RequestInit): Promise<AuthorizedUser> => {
+
+  return customFetch<AuthorizedUser>(getUpdateAuthorizedUserUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      authorizedUserInput,)
+  }
+);}
+
+
+
+
+export const getUpdateAuthorizedUserMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAuthorizedUser>>, TError,{id: number;data: BodyType<AuthorizedUserInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAuthorizedUser>>, TError,{id: number;data: BodyType<AuthorizedUserInput>}, TContext> => {
+
+const mutationKey = ['updateAuthorizedUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAuthorizedUser>>, {id: number;data: BodyType<AuthorizedUserInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAuthorizedUser(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAuthorizedUserMutationResult = NonNullable<Awaited<ReturnType<typeof updateAuthorizedUser>>>
+    export type UpdateAuthorizedUserMutationBody = BodyType<AuthorizedUserInput>
+    export type UpdateAuthorizedUserMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update an authorized user
+ */
+export const useUpdateAuthorizedUser = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAuthorizedUser>>, TError,{id: number;data: BodyType<AuthorizedUserInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAuthorizedUser>>,
+        TError,
+        {id: number;data: BodyType<AuthorizedUserInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAuthorizedUserMutationOptions(options));
+    }
+
+export const getDeleteAuthorizedUserUrl = (id: number,) => {
+
+
+
+
+  return `/api/authorized-users/${id}`
+}
+
+/**
+ * @summary Delete an authorized user
+ */
+export const deleteAuthorizedUser = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteAuthorizedUserUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAuthorizedUserMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAuthorizedUser>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAuthorizedUser>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteAuthorizedUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAuthorizedUser>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAuthorizedUser(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAuthorizedUserMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAuthorizedUser>>>
+
+    export type DeleteAuthorizedUserMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete an authorized user
+ */
+export const useDeleteAuthorizedUser = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAuthorizedUser>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAuthorizedUser>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAuthorizedUserMutationOptions(options));
+    }
+
+export const getVerifyIdentityUrl = () => {
+
+
+
+
+  return `/api/auth/verify-identity`
+}
+
+/**
+ * @summary Verify student/instructor identity against authorized list
+ */
+export const verifyIdentity = async (verifyIdentityInput: VerifyIdentityInput, options?: RequestInit): Promise<VerifyIdentity200> => {
+
+  return customFetch<VerifyIdentity200>(getVerifyIdentityUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      verifyIdentityInput,)
+  }
+);}
+
+
+
+
+export const getVerifyIdentityMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyIdentity>>, TError,{data: BodyType<VerifyIdentityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyIdentity>>, TError,{data: BodyType<VerifyIdentityInput>}, TContext> => {
+
+const mutationKey = ['verifyIdentity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyIdentity>>, {data: BodyType<VerifyIdentityInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyIdentity(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyIdentityMutationResult = NonNullable<Awaited<ReturnType<typeof verifyIdentity>>>
+    export type VerifyIdentityMutationBody = BodyType<VerifyIdentityInput>
+    export type VerifyIdentityMutationError = ErrorType<void>
+
+    /**
+ * @summary Verify student/instructor identity against authorized list
+ */
+export const useVerifyIdentity = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyIdentity>>, TError,{data: BodyType<VerifyIdentityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyIdentity>>,
+        TError,
+        {data: BodyType<VerifyIdentityInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyIdentityMutationOptions(options));
+    }
 
