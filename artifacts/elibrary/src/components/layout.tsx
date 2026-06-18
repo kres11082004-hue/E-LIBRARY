@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Home, Users, Settings, LogOut, Library, BookMarked, User as UserIcon, Menu, X, CalendarCheck, Clock, Wifi, WifiOff } from "lucide-react";
+import { BookOpen, Home, Users, Settings, LogOut, Library, BookMarked, User as UserIcon, Menu, X, CalendarCheck, Clock, Wifi, WifiOff, ShieldCheck } from "lucide-react";
 import { useLogout } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useOnlineStatus } from "@/hooks/use-online-status";
@@ -73,6 +73,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="mt-5 mb-2 px-4 text-xs font-bold tracking-wider text-muted-foreground uppercase">Management</div>
             <NavLink href="/admin/books" icon={BookOpen}>Manage Books</NavLink>
             <NavLink href="/admin/users" icon={Users}>Manage Users</NavLink>
+            <NavLink href="/admin/authorized-users" icon={ShieldCheck}>Master List</NavLink>
             <NavLink href="/admin/reservations" icon={CalendarCheck}>Reservations</NavLink>
 
             <div className="mt-5 mb-2 px-4 text-xs font-bold tracking-wider text-muted-foreground uppercase">Monitoring</div>

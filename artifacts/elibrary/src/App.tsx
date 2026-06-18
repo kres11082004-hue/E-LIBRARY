@@ -21,6 +21,7 @@ import AdminMonitoringPage from "@/pages/admin/monitoring";
 import AdminReservationsPage from "@/pages/admin/reservations";
 import AdminReportsPage from "@/pages/admin/reports";
 import AdminDashboardPage from "@/pages/admin/dashboard";
+import AdminAuthorizedUsersPage from "@/pages/admin/authorized-users";
 import ReadPage from "@/pages/read";
 
 const queryClient = new QueryClient({
@@ -94,6 +95,7 @@ function Router() {
       <Route path="/admin/monitoring">{() => <ProtectedRoute component={AdminMonitoringPage} adminOnly />}</Route>
       <Route path="/admin/reservations">{() => <ProtectedRoute component={AdminReservationsPage} adminOnly />}</Route>
       <Route path="/admin/reports">{() => <ProtectedRoute component={AdminReportsPage} adminOnly />}</Route>
+      <Route path="/admin/authorized-users">{() => <ProtectedRoute component={AdminAuthorizedUsersPage} adminOnly />}</Route>
       <Route component={NotFound} />
     </Switch>
   );
