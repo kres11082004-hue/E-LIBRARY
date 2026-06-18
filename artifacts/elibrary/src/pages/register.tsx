@@ -8,6 +8,7 @@ import { useLocation, Link } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Library, Eye, EyeOff, ChevronLeft, User } from "lucide-react";
+import { FaceScanner } from "@/components/face-scanner";
 
 const CAMPUSES = [
   "ZDSPGC-Dimataling Campus",
@@ -69,7 +70,9 @@ export default function RegisterPage() {
 
   const isStudent = form.role === "student";
   const isInstructor = form.role === "instructor";
-  const totalSteps = (isStudent || isInstructor) ? 3 : 2;
+  const baseSteps = (isStudent || isInstructor) ? 3 : 2;
+  const totalSteps = baseSteps + 1; // Final step is Face Scanner
+  const [livenessVerified, setLivenessVerified] = useState(false);
   const isAssociate = ASSOCIATE_COURSES.has(form.course);
   const yearOptions = isAssociate ? ASSOCIATE_YEAR_OPTIONS : YEAR_OPTIONS;
 
@@ -83,9 +86,15 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (step < totalSteps) { setStep(s => s + 1); return; }
+    
+    if (!livenessVerified) {
+      toast({ title: "Verification required", description: "Please complete the face liveness verification to continue.", variant: "destructive" });
+      return;
+    }
+
     try {
       const result = await registerMutation.mutateAsync({
         data: {
@@ -280,15 +289,31 @@ export default function RegisterPage() {
             </>
           )}
 
-          <div className="flex gap-3 pt-2">
+          {step === totalSteps && (
+            <div className="space-y-4 pt-2">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-semibold text-foreground">Face Verification</h3>
+                <p className="text-sm text-muted-foreground mt-1">Please complete this quick liveness check to prove you are human.</p>
+              </div>
+              <FaceScanner onSuccess={() => setLivenessVerified(true)} />
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 mt-6 border-t">
             {step > 1 && (
               <Button type="button" variant="outline" onClick={() => setStep(s => s - 1)} className="gap-2">
                 <ChevronLeft className="w-4 h-4" /> Back
               </Button>
             )}
-            <Button type="submit" className="flex-1" disabled={registerMutation.isPending || (step === 2 && (!form.campus || !form.photoUrl))}>
-              {step < totalSteps ? "Continue" : registerMutation.isPending ? "Creating account..." : "Create Account"}
-            </Button>
+            {step < totalSteps ? (
+              <Button type="submit" className="flex-1" disabled={step === 2 && (!form.campus || !form.photoUrl)}>
+                Continue
+              </Button>
+            ) : (
+              <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={!livenessVerified || registerMutation.isPending}>
+                {registerMutation.isPending ? "Creating account..." : "Complete Registration"}
+              </Button>
+            )}
           </div>
         </form>
 

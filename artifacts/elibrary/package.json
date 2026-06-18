@@ -77,6 +77,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@vladmandic/face-api": "^1.7.15",
     "jspdf": "^4.2.1"
   }
 }
