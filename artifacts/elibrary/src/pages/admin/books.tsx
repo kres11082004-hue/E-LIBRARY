@@ -223,6 +223,9 @@ export default function AdminBooksPage() {
                       <div className="min-w-0">
                         <p className="font-medium text-sm text-foreground truncate max-w-[200px]">{book.title}</p>
                         <p className="text-xs text-muted-foreground">{book.author}</p>
+                        {book.isbn && (
+                          <p className="text-xs text-muted-foreground/70 font-mono">ISBN: {book.isbn}</p>
+                        )}
                       </div>
                     </div>
                   </td>

@@ -5,3 +5,4 @@ export * from "./borrow";
 export * from "./activity";
 export * from "./reservations";
 export * from "./authorized-users";
+export * from "./downloads";

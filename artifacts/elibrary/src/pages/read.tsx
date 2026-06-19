@@ -2,6 +2,7 @@ import { useRoute, Link, useLocation } from "wouter";
 import { useGetBook, useAddToMyList, useGetMyList, getGetMyListQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, BookMarked, Sun, Moon, Type, Download, Wifi, WifiOff,
@@ -62,6 +63,7 @@ function renderContent(content: string, fontSize: string, lineHeight: string, te
 }
 
 export default function ReadPage() {
+  const { user } = useAuth();
   const [, params] = useRoute("/books/:id/read");
   const id = parseInt(params?.id || "0");
   const [, setLocation] = useLocation();
@@ -146,8 +148,8 @@ export default function ReadPage() {
   };
 
   const handleDownload = () => {
-    if (!displayBook) return;
-    triggerBookDownload(displayBook);
+    if (!displayBook || !user?.id) return;
+    triggerBookDownload(user.id, displayBook);
     toast({ title: "Download started" });
   };
 

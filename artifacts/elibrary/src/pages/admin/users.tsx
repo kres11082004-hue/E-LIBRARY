@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useListUsers, useUpdateUser, useDeleteUser, getListUsersQueryKey } from "@workspace/api-client-react";
+import { useListUsers, useDeleteUser, getListUsersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CheckCircle, XCircle, Trash2, Users, Filter, Building, Phone, MapPin, GraduationCap, Clock } from "lucide-react";
+import { Search, Trash2, Users, Filter, Building, Phone, MapPin, GraduationCap, Clock, Eye } from "lucide-react";
 import { BackButton } from "@/components/back-button";
 
 const CAMPUSES = [
@@ -52,7 +52,6 @@ export default function AdminUsersPage() {
     campus: campus !== "All" ? campus : undefined,
     role: role !== "All" ? role : undefined,
   });
-  const updateMutation = useUpdateUser();
   const deleteMutation = useDeleteUser();
 
   const filtered = users.filter(u =>
@@ -60,14 +59,6 @@ export default function AdminUsersPage() {
     u.role !== "admin" && u.role !== "librarian" &&
     (!search || u.fullname.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
   );
-
-  const handleApprove = async (id: number, current: boolean) => {
-    try {
-      await updateMutation.mutateAsync({ id, data: { isApproved: !current } });
-      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-      toast({ title: current ? "User suspended" : "User approved" });
-    } catch { toast({ title: "Failed to update", variant: "destructive" }); }
-  };
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
@@ -78,7 +69,7 @@ export default function AdminUsersPage() {
     } catch { toast({ title: "Failed to delete", variant: "destructive" }); }
   };
 
-  const pending = filtered.filter(u => !u.isApproved).length;
+
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -86,7 +77,7 @@ export default function AdminUsersPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Manage Users</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
-          {filtered.length} users {pending > 0 && <span className="text-amber-600 font-medium">· {pending} pending approval</span>}
+          {filtered.length} users
         </p>
       </div>
 
@@ -148,20 +139,16 @@ export default function AdminUsersPage() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[user.role] || "bg-secondary text-secondary-foreground"}`}>
                   {user.role === "admin" || user.role === "librarian" ? "Admin" : user.role}
                 </span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${user.isApproved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                  {user.isApproved ? "Approved" : "Pending"}
-                </span>
               </div>
 
               <div className="mt-auto w-full flex items-center justify-between gap-2 border-t pt-3">
                 <Button
                   size="sm"
                   variant="ghost"
-                  className={`flex-1 h-8 text-xs ${user.isApproved ? "text-amber-600 hover:bg-amber-50" : "text-green-600 hover:bg-green-50"}`}
-                  onClick={(e) => { e.stopPropagation(); handleApprove(user.id, user.isApproved ?? false); }}
-                  disabled={updateMutation.isPending}
+                  className="flex-1 h-8 text-xs text-primary hover:bg-primary/10"
+                  onClick={(e) => { e.stopPropagation(); setSelectedUser(user); }}
                 >
-                  {user.isApproved ? <><XCircle className="w-3 h-3 mr-1" /> Suspend</> : <><CheckCircle className="w-3 h-3 mr-1" /> Approve</>}
+                  <Eye className="w-3 h-3 mr-1" /> View
                 </Button>
                 <Button
                   size="sm"
@@ -201,9 +188,6 @@ export default function AdminUsersPage() {
               <div className="flex items-center justify-center gap-2 mt-3">
                 <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[selectedUser.role] || "bg-secondary"}`}>
                   {selectedUser.role === "admin" || selectedUser.role === "librarian" ? "Admin/Librarian" : selectedUser.role.charAt(0).toUpperCase() + selectedUser.role.slice(1)}
-                </span>
-                <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${selectedUser.isApproved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                  {selectedUser.isApproved ? "Approved" : "Pending Approval"}
                 </span>
               </div>
             </div>
@@ -253,15 +237,15 @@ export default function AdminUsersPage() {
             
             <div className="flex gap-2 mt-2">
               <Button
-                className={`flex-1 ${selectedUser.isApproved ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-green-100 text-green-700 hover:bg-green-200"}`}
-                variant="secondary"
+                className="flex-1"
+                variant="destructive"
                 onClick={() => {
-                  handleApprove(selectedUser.id, selectedUser.isApproved ?? false);
-                  setSelectedUser({ ...selectedUser, isApproved: !selectedUser.isApproved });
+                  handleDelete(selectedUser.id, selectedUser.fullname);
+                  setSelectedUser(null);
                 }}
-                disabled={updateMutation.isPending}
+                disabled={deleteMutation.isPending}
               >
-                {selectedUser.isApproved ? <><XCircle className="w-4 h-4 mr-2" /> Suspend User</> : <><CheckCircle className="w-4 h-4 mr-2" /> Approve User</>}
+                <Trash2 className="w-4 h-4 mr-2" /> Delete User
               </Button>
             </div>
           </DialogContent>

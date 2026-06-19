@@ -2,6 +2,7 @@ export interface DownloadedBook {
   id: number;
   title: string;
   author: string;
+  isbn?: string | null;
   coverUrl?: string | null;
   category: string;
   campus: string;
@@ -11,16 +12,18 @@ export interface DownloadedBook {
 /**
  * Saves a book's metadata to the local list of downloaded books.
  */
-export function saveDownloadedBook(book: {
+export function saveDownloadedBook(userId: number, book: {
   id: number;
   title: string;
   author: string;
+  isbn?: string | null;
   coverUrl?: string | null;
   category: string;
   campus: string;
 }) {
   try {
-    const raw = localStorage.getItem("downloaded_books");
+    const key = `downloaded_books_${userId}`;
+    const raw = localStorage.getItem(key);
     const list: DownloadedBook[] = raw ? JSON.parse(raw) : [];
     const index = list.findIndex(item => item.id === book.id);
     
@@ -36,7 +39,7 @@ export function saveDownloadedBook(book: {
         downloadedAt: new Date().toISOString(),
       };
     }
-    localStorage.setItem("downloaded_books", JSON.stringify(list));
+    localStorage.setItem(key, JSON.stringify(list));
   } catch (e) {
     console.error("Failed to save downloaded book", e);
   }
@@ -45,9 +48,11 @@ export function saveDownloadedBook(book: {
 /**
  * Retrieves the list of downloaded books from localStorage.
  */
-export function getDownloadedBooks(): DownloadedBook[] {
+export function getDownloadedBooks(userId?: number): DownloadedBook[] {
+  if (!userId) return [];
   try {
-    const raw = localStorage.getItem("downloaded_books");
+    const key = `downloaded_books_${userId}`;
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     return [];
@@ -57,13 +62,14 @@ export function getDownloadedBooks(): DownloadedBook[] {
 /**
  * Removes a book from the local list of downloaded books.
  */
-export function removeDownloadedBook(id: number) {
+export function removeDownloadedBook(userId: number, id: number) {
   try {
-    const raw = localStorage.getItem("downloaded_books");
+    const key = `downloaded_books_${userId}`;
+    const raw = localStorage.getItem(key);
     if (!raw) return;
     const list: DownloadedBook[] = JSON.parse(raw);
     const filtered = list.filter(item => item.id !== id);
-    localStorage.setItem("downloaded_books", JSON.stringify(filtered));
+    localStorage.setItem(key, JSON.stringify(filtered));
   } catch (e) {
     console.error("Failed to remove downloaded book", e);
   }
@@ -73,7 +79,7 @@ export function removeDownloadedBook(id: number) {
  * Triggers a browser file download of the book's content (or synthesizes one if content is empty)
  * and registers the book in the local downloaded list.
  */
-export function triggerBookDownload(book: {
+export function triggerBookDownload(userId: number, book: {
   id: number;
   title: string;
   author: string;
@@ -210,12 +216,26 @@ export function triggerBookDownload(book: {
   }
 
   // Save download metadata to local storage
-  saveDownloadedBook({
+  saveDownloadedBook(userId, {
     id: book.id,
     title: book.title,
     author: book.author,
+    isbn: book.isbn,
     coverUrl: book.coverUrl,
     category: book.category,
     campus: book.campus,
   });
+
+  // Record to the server for Admin/Librarian visibility
+  const token = localStorage.getItem("token");
+  if (token) {
+    fetch("/api/downloads", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ bookId: book.id })
+    }).catch(err => console.error("Failed to record download to server", err));
+  }
 }

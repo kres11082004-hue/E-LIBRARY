@@ -163,8 +163,9 @@ export default function BookDetailPage() {
               variant="outline"
               className="w-full gap-2"
               onClick={() => {
-                triggerBookDownload(book);
-                toast({ title: `"${book.title}" download started` });
+                if (!user?.id) return;
+                triggerBookDownload(user.id, book);
+                toast({ title: "Download Started", description: "Saving book for offline reading." });
               }}
             >
               <Download className="w-4 h-4" /> Download Book

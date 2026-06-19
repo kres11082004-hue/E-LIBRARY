@@ -10,6 +10,7 @@ import borrowRouter from "./borrow.js";
 import monitoringRouter from "./monitoring.js";
 import authorizedUsersRouter from "./authorized-users.js";
 import reportsRouter from "./reports.js";
+import downloadsRouter from "./downloads.js";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(borrowRouter);
 router.use(monitoringRouter);
 router.use(authorizedUsersRouter);
 router.use(reportsRouter);
+router.use(downloadsRouter);
 
 export default router;

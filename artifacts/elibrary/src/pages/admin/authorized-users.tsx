@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Plus, Trash2, ShieldCheck, Link2, Upload } from "lucide-react";
+import * as XLSX from "xlsx";
 
 // Assuming we use standard fetch for simplicity if the typed client isn't ready
 const fetchAuthorizedUsers = async (search: string, role: string) => {
@@ -139,38 +140,51 @@ export default function AuthorizedUsersAdmin() {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (!text) return;
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Convert to JSON
+        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        if (rawData.length < 2) {
+          toast({ title: "Invalid File", description: "File must contain a header row and at least one data row.", variant: "destructive" });
+          return;
+        }
 
-      // Basic CSV parsing
-      const rows = text.split("\n").map(r => r.trim()).filter(r => r);
-      if (rows.length < 2) {
-        toast({ title: "Invalid CSV", description: "File must contain a header row and at least one data row.", variant: "destructive" });
-        return;
-      }
+        const headers = rawData[0].map(h => String(h).trim().toLowerCase());
+        const dataRows = rawData.slice(1);
 
-      // Assume header: fullName,schoolId,role,course
-      const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
-      const dataRows = rows.slice(1);
-      
-      const parsedData = dataRows.map(row => {
-        const cols = row.split(",").map(c => c.trim());
-        const record: any = {};
-        headers.forEach((h, i) => {
-          if (cols[i]) record[h] = cols[i];
+        const parsedData = dataRows.map(row => {
+          const record: any = {};
+          headers.forEach((h, i) => {
+            if (row[i] !== undefined && row[i] !== null) {
+              record[h] = String(row[i]).trim();
+            }
+          });
+          // Handle "schoolid" from header mapping to "schoolId"
+          if (record.schoolid && !record.schoolId) record.schoolId = record.schoolid;
+          if (record.fullname && !record.fullName) record.fullName = record.fullname;
+          return record;
         });
-        // Handle "schoolid" from header mapping to "schoolId"
-        if (record.schoolid && !record.schoolId) record.schoolId = record.schoolid;
-        if (record.fullname && !record.fullName) record.fullName = record.fullname;
-        return record;
-      });
 
-      importMutation.mutate(parsedData);
+        const validData = parsedData.filter(row => Object.keys(row).length > 0 && row.fullName && row.schoolId);
+
+        if (validData.length === 0) {
+           toast({ title: "No valid data", description: "Could not find any valid rows with fullName and schoolId.", variant: "destructive" });
+           return;
+        }
+
+        importMutation.mutate(validData);
+      } catch (err) {
+        toast({ title: "Error parsing file", description: "Make sure it is a valid spreadsheet file.", variant: "destructive" });
+      }
       
       // Reset input
       if (e.target) e.target.value = '';
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   };
 
   return (
@@ -187,15 +201,15 @@ export default function AuthorizedUsersAdmin() {
           <div>
             <input 
               type="file" 
-              accept=".csv" 
+              accept=".csv, .xlsx, .xls" 
               className="hidden" 
-              id="csv-upload" 
+              id="file-upload" 
               onChange={handleFileUpload} 
               disabled={importMutation.isPending}
             />
-            <Label htmlFor="csv-upload">
+            <Label htmlFor="file-upload">
               <div className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 gap-2 cursor-pointer ${importMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
-                <Upload className="w-4 h-4" /> {importMutation.isPending ? "Importing..." : "Import CSV"}
+                <Upload className="w-4 h-4" /> {importMutation.isPending ? "Importing..." : "Import Files"}
               </div>
             </Label>
           </div>

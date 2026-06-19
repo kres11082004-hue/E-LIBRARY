@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useListBooks, useAddToMyList, useGetMyList, getGetMyListQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -13,68 +13,112 @@ import { BackButton } from "@/components/back-button";
 
 const CATEGORIES = ["All", "Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
 
-function BookCard({ book, inMyList, onAdd }: { book: any; inMyList: boolean; onAdd: (e: React.MouseEvent) => void }) {
+function BookCard({ book, inMyList, userId, onAdd }: { book: any; inMyList: boolean; userId?: number; onAdd: () => void }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   return (
     <div
-      className="bg-card border rounded-xl p-4 flex gap-4 hover:shadow-sm transition-all cursor-pointer group"
+      className="bg-card border rounded-xl overflow-hidden hover:shadow-md transition-all cursor-pointer group"
       onClick={() => setLocation(`/books/${book.id}`)}
     >
-      <div className="w-20 h-28 bg-muted rounded-lg flex items-center justify-center overflow-hidden relative shrink-0 group-hover:opacity-90 transition-opacity">
+      {/* Cover Image */}
+      <div className="h-44 bg-muted flex items-center justify-center overflow-hidden relative">
         {book.coverUrl ? (
-          <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
+          <img
+            src={book.coverUrl}
+            alt={book.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
         ) : (
-          <BookOpen className="w-8 h-8 text-muted-foreground/50" />
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <BookOpen className="w-10 h-10 opacity-30" />
+            <span className="text-xs">{book.category}</span>
+          </div>
         )}
-      </div>
 
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors line-clamp-2">{book.title}</h3>
-        <p className="text-sm text-muted-foreground mt-0.5">{book.author}</p>
-        <div className="flex items-center gap-2 mt-3">
-          <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">{book.category}</span>
-          <span className="text-xs text-muted-foreground hidden sm:inline">{book.campus}</span>
-          {book.isAvailablePhysical && (
-            <span className="text-xs text-green-600 font-medium ml-2">
-              • {book.availableCopies}/{book.totalCopies} available
-            </span>
+        {/* Digital / Physical badges */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {book.fileUrl && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600/90 text-white leading-tight">Digital</span>
           )}
+          {book.isAvailablePhysical && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-600/90 text-white leading-tight">Physical</span>
+          )}
+        </div>
+
+        {/* Hover action overlay */}
+        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {book.fileUrl ? (
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white w-28"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!userId) return;
+                triggerBookDownload(userId, book);
+                toast({ title: "Download started", description: `"${book.title}" is being downloaded.` });
+              }}
+            >
+              <Download className="w-3.5 h-3.5" /> Download
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-xs w-28"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLocation(`/books/${book.id}/read`);
+              }}
+            >
+              <BookText className="w-3.5 h-3.5" /> Read
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant={inMyList ? "secondary" : "outline"}
+            className="h-8 text-xs gap-1.5 w-28"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
+            disabled={inMyList}
+          >
+            <BookMarked className="w-3.5 h-3.5" />
+            {inMyList ? "Saved" : "Save"}
+          </Button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 shrink-0 justify-between items-end">
-        {book.fileUrl ? (
-          <Button size="sm" className="h-8 gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white" onClick={(e) => { e.stopPropagation(); triggerBookDownload(book); toast({ title: `"${book.title}" download started` }); }}>
-            <Download className="w-3.5 h-3.5" /> Download
-          </Button>
-        ) : (
-          <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); setLocation(`/books/${book.id}/read`); }}>
-            <BookText className="w-3.5 h-3.5" /> Read
-          </Button>
+      {/* Card Body */}
+      <div className="p-3">
+        <p className="font-semibold text-sm text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+          {book.title}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">{book.author}</p>
+        {book.isbn && (
+          <p className="text-xs text-muted-foreground/60 font-mono mt-0.5">ISBN: {book.isbn}</p>
         )}
-
-        <Button
-          size="sm"
-          variant={inMyList ? "secondary" : "outline"}
-          className="h-8 text-xs gap-1.5"
-          onClick={(e) => { e.stopPropagation(); onAdd(e); }}
-          disabled={inMyList}
-        >
-          <BookMarked className="w-3.5 h-3.5" />
-          {inMyList ? "Saved" : "Save"}
-        </Button>
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">
+            {book.category}
+          </span>
+          {book.isAvailablePhysical && (
+            <span className="text-xs text-green-600 font-medium">
+              {book.availableCopies}/{book.totalCopies} copies
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 export default function BooksPage() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const { toast } = useToast();
-  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
@@ -138,13 +182,14 @@ export default function BooksPage() {
 
       {/* Books Grid */}
       {isLoading ? (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="bg-card border rounded-xl p-4 flex gap-4 animate-pulse">
-              <div className="w-20 h-28 bg-muted rounded-lg shrink-0" />
-              <div className="flex-1 py-2 space-y-3">
-                <div className="h-5 bg-muted rounded w-2/3" />
-                <div className="h-4 bg-muted rounded w-1/3" />
+            <div key={i} className="bg-card border rounded-xl overflow-hidden animate-pulse">
+              <div className="h-44 bg-muted" />
+              <div className="p-3 space-y-2">
+                <div className="h-4 bg-muted rounded w-4/5" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+                <div className="h-3 bg-muted rounded w-2/3" />
               </div>
             </div>
           ))}
@@ -156,12 +201,13 @@ export default function BooksPage() {
           <p className="text-muted-foreground text-sm mt-1">Try a different search or category</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {books.map(book => (
             <BookCard
               key={book.id}
               book={book}
               inMyList={myListIds.has(book.id)}
+              userId={user?.id}
               onAdd={() => handleAdd(book.id, book.title)}
             />
           ))}

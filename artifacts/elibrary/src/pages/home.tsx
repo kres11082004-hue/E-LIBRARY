@@ -48,6 +48,9 @@ function BookCard({ book }: { book: any }) {
         <div className="p-4">
           <p className="font-semibold text-sm text-foreground line-clamp-2 leading-snug">{book.title}</p>
           <p className="text-xs text-muted-foreground mt-1">{book.author}</p>
+          {book.isbn && (
+            <p className="text-xs text-muted-foreground/60 font-mono mt-0.5">ISBN: {book.isbn}</p>
+          )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">{book.category}</span>
             {book.isAvailablePhysical && (

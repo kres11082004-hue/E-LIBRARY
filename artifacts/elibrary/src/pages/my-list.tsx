@@ -7,8 +7,10 @@ import { BookOpen, BookMarked, Trash2, Download, CheckCircle, Smartphone } from 
 import { useEffect, useState } from "react";
 import { getDownloadedBooks, removeDownloadedBook, DownloadedBook } from "@/lib/download-helper";
 import { BackButton } from "@/components/back-button";
+import { useAuth } from "@/lib/auth-context";
 
 export default function MyListPage() {
+  const { user } = useAuth();
   const { data: myList = [], isLoading } = useGetMyList();
   const removeMutation = useRemoveFromMyList();
   const queryClient = useQueryClient();
@@ -18,8 +20,10 @@ export default function MyListPage() {
   const [downloaded, setDownloaded] = useState<DownloadedBook[]>([]);
 
   useEffect(() => {
-    setDownloaded(getDownloadedBooks());
-  }, []);
+    if (user?.id) {
+      setDownloaded(getDownloadedBooks(user.id));
+    }
+  }, [user]);
 
   const handleRemove = async (bookId: number, title: string) => {
     try {
@@ -32,8 +36,9 @@ export default function MyListPage() {
   };
 
   const handleRemoveDownload = (id: number, title: string) => {
-    removeDownloadedBook(id);
-    setDownloaded(getDownloadedBooks());
+    if (!user?.id) return;
+    removeDownloadedBook(user.id, id);
+    setDownloaded(getDownloadedBooks(user.id));
     toast({ title: `"${title}" deleted from offline storage` });
   };
 
@@ -138,6 +143,9 @@ export default function MyListPage() {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {item.book.author}
                   </p>
+                  {item.book.isbn && (
+                    <p className="text-xs text-muted-foreground/70 font-mono mt-0.5">ISBN: {item.book.isbn}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">
                       {item.book.category}
@@ -218,6 +226,9 @@ export default function MyListPage() {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {item.author}
                   </p>
+                  {item.isbn && (
+                    <p className="text-xs text-muted-foreground/70 font-mono mt-0.5">ISBN: {item.isbn}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">
                       {item.category}
