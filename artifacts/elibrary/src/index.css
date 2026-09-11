@@ -160,3 +160,21 @@
   }
 }
 
+/* Restore docx-preview native formatting stripped by Tailwind reset */
+.docx-wrapper p, 
+.docx-wrapper h1, 
+.docx-wrapper h2, 
+.docx-wrapper h3, 
+.docx-wrapper h4, 
+.docx-wrapper h5, 
+.docx-wrapper h6, 
+.docx-wrapper ul, 
+.docx-wrapper ol, 
+.docx-wrapper li, 
+.docx-wrapper table {
+  margin: revert;
+  padding: revert;
+  line-height: revert;
+  list-style: revert;
+}
+

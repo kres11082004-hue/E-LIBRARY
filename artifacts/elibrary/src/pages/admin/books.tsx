@@ -145,7 +145,11 @@ export default function AdminBooksPage() {
         }
 
         const data = await res.json();
-        setForm(f => ({ ...f, fileUrl: data.fileUrl }));
+        setForm(f => ({ 
+          ...f, 
+          fileUrl: data.fileUrl,
+          content: data.extractedText || f.content 
+        }));
         toast({ title: "File uploaded!", description: "Book file saved successfully." });
         setUploadingFile(false);
       };

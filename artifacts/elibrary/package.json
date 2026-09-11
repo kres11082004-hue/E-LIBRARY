@@ -77,9 +77,11 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "docx-preview": "^0.4.0",
     "epubjs": "^0.3.93",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "jszip": "^3.10.2",
     "react-reader": "^2.0.15",
     "xlsx": "^0.18.5"
   }

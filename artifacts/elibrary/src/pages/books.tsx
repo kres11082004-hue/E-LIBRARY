@@ -125,10 +125,30 @@ export default function BooksPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const { data: books = [], isLoading } = useListBooks({
+  const searchParams = new URLSearchParams(window.location.search);
+  const departmentFilter = searchParams.get("department");
+
+  const { data: booksRaw = [], isLoading } = useListBooks({
     search: search || undefined,
     category: category !== "All" ? category : undefined,
   });
+  
+  const books = booksRaw.filter(b => {
+    if (!departmentFilter) return true;
+    const dept = (b.department || "").toLowerCase();
+    const title = (b.title || "").toLowerCase();
+    const cat = (b.category || "").toLowerCase();
+    
+    if (departmentFilter === "BPED") {
+      return dept.includes("bped") || dept.includes("physical education") || cat.includes("education") || title.includes("sport") || title.includes("physic");
+    } else if (departmentFilter === "BSIS") {
+      // Anything that is not BPED is currently considered BSIS
+      const isBped = dept.includes("bped") || dept.includes("physical education") || cat.includes("education") || title.includes("sport") || title.includes("physic");
+      return !isBped;
+    }
+    return true;
+  });
+
   const { data: myList = [] } = useGetMyList();
   const addMutation = useAddToMyList();
 
@@ -149,7 +169,14 @@ export default function BooksPage() {
       <BackButton />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Browse Library</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            {departmentFilter && (
+              <span className={`text-xs px-2 py-1 rounded-full text-white ${departmentFilter === 'BSIS' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                {departmentFilter}
+              </span>
+            )}
+            Browse Library
+          </h1>
           <p className="text-muted-foreground text-sm mt-0.5">{books.length} books available — click any book to read</p>
         </div>
         {(user?.role === "admin" || user?.role === "librarian") && (

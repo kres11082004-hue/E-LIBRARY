@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft, BookMarked, Sun, Moon, Type, Download, Wifi, WifiOff,
-  ChevronLeft, ChevronRight, AlignLeft, Maximize2, Minimize2
+  ArrowLeft, BookMarked, Sun, Moon, Type, Download, WifiOff,
+  AlignLeft, Maximize2, Minimize2
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
+import * as docx from "docx-preview";
 import { triggerBookDownload } from "@/lib/download-helper";
 
 // ─── Offline cache helpers ────────────────────────────────────────────────────
@@ -40,6 +41,17 @@ const FONT_SIZES = ["text-base", "text-lg", "text-xl"] as const;
 const FONT_LABELS = ["A−", "A", "A+"] as const;
 const LINE_HEIGHTS = ["leading-relaxed", "leading-loose"] as const;
 
+// ─── Detect file type from URL ────────────────────────────────────────────────
+function getFileType(url: string): "pdf" | "epub" | "doc" | "text" | "external" | null {
+  if (!url) return null;
+  const lower = url.toLowerCase();
+  if (lower.endsWith(".pdf")) return "pdf";
+  if (lower.endsWith(".epub")) return "epub";
+  if (lower.endsWith(".doc") || lower.endsWith(".docx")) return "doc";
+  if (lower.startsWith("http") && !lower.includes("/uploads/")) return "external";
+  return "text";
+}
+
 // ─── Paragraph renderer ───────────────────────────────────────────────────────
 function renderContent(content: string, fontSize: string, lineHeight: string, textColor: string) {
   const paragraphs = content.split(/\n{2,}/).filter(Boolean);
@@ -60,6 +72,66 @@ function renderContent(content: string, fontSize: string, lineHeight: string, te
       </p>
     );
   });
+}
+
+// ─── DocxViewer Component ───────────────────────────────────────────────────
+function DocxViewer({ fileUrl }: { fileUrl: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !fileUrl) return;
+    
+    let isMounted = true;
+    
+    fetch(fileUrl)
+      .then(res => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.blob();
+      })
+      .then(blob => {
+        if (isMounted && containerRef.current) {
+          docx.renderAsync(blob, containerRef.current, undefined, {
+            inWrapper: true,
+            ignoreWidth: false,
+            ignoreHeight: false,
+            ignoreFonts: false,
+            breakPages: true, // This enables distinct physical pages!
+            ignoreLastRenderedPageBreak: false,
+            experimental: true,
+          }).then(() => {
+            if (isMounted) setLoading(false);
+          }).catch(err => {
+            console.error("Docx render error:", err);
+            if (isMounted) setError("Failed to render document pages.");
+          });
+        }
+      })
+      .catch(err => {
+        console.error("Docx fetch error:", err);
+        if (isMounted) setError("Failed to download document file.");
+      });
+
+    return () => { isMounted = false; };
+  }, [fileUrl]);
+
+  return (
+    <div className="w-full h-full flex flex-col relative items-center py-8">
+      {loading && !error && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-200/50">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-200">
+          <p className="text-red-500 font-semibold">{error}</p>
+        </div>
+      )}
+      {/* docx-preview injects its own wrapper with distinct white pages separated by gray margins */}
+      <div ref={containerRef} className="w-full max-w-full" />
+    </div>
+  );
 }
 
 export default function ReadPage() {
@@ -175,6 +247,164 @@ export default function ReadPage() {
     );
   }
 
+  // ─── Determine how to render: PDF file, external link, or text content ───────
+  const fileType = displayBook.fileUrl ? getFileType(displayBook.fileUrl) : null;
+  const hasPdfFile = fileType === "pdf";
+  const hasDocFile = fileType === "doc";
+  const hasExternalLink = fileType === "external";
+
+  // For PDF: show inline PDF viewer
+  if (hasPdfFile) {
+    return (
+      <div className={`flex flex-col ${fullscreen ? "fixed inset-0 z-50" : "h-full min-h-screen"} bg-gray-100 transition-colors duration-300`}>
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b bg-white shadow-sm z-40 sticky top-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setLocation(`/books/${id}`)}
+              className="flex items-center gap-1.5 text-sm font-medium shrink-0 text-gray-700 opacity-70 hover:opacity-100 transition-opacity"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <div className="hidden sm:block h-4 w-px bg-gray-300" />
+            <div className="min-w-0 hidden sm:block">
+              <p className="text-sm font-semibold truncate text-gray-900">{displayBook.title}</p>
+              <p className="text-xs truncate text-gray-500">{displayBook.author}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full">📄 PDF Viewer</span>
+            <a
+              href={displayBook.fileUrl}
+              download
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+            >
+              <Download className="w-3.5 h-3.5" /> Download PDF
+            </a>
+            <button
+              onClick={() => setFullscreen(f => !f)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 opacity-70 hover:opacity-100 hover:bg-gray-100 transition-all"
+              title="Fullscreen"
+            >
+              {fullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* PDF iframe viewer */}
+        <div className="flex-1 w-full">
+          <iframe
+            src={`${displayBook.fileUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+            className="w-full h-full"
+            style={{ minHeight: "calc(100vh - 56px)", border: "none" }}
+            title={displayBook.title}
+            allow="fullscreen"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── For DOC/DOCX: Embed via docx-preview natively with real pages ─────────
+  if (hasDocFile) {
+    const absoluteFileUrl = displayBook.fileUrl?.startsWith("http")
+      ? displayBook.fileUrl
+      : `${window.location.origin}${displayBook.fileUrl}`;
+
+    return (
+      <div className={`flex flex-col ${fullscreen ? "fixed inset-0 z-50" : "h-full min-h-screen"} bg-gray-200 transition-colors duration-300`}>
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b bg-white shadow-sm z-40 sticky top-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setLocation(`/books/${id}`)}
+              className="flex items-center gap-1.5 text-sm font-medium shrink-0 text-gray-700 opacity-70 hover:opacity-100 transition-opacity"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <div className="hidden sm:block h-4 w-px bg-gray-300" />
+            <div className="min-w-0 hidden sm:block">
+              <p className="text-sm font-semibold truncate text-gray-900">{displayBook.title}</p>
+              <p className="text-xs truncate text-gray-500">{displayBook.author}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-full">📝 Word Document</span>
+            <a
+              href={displayBook.fileUrl}
+              download
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+            >
+              <Download className="w-3.5 h-3.5" /> Download File
+            </a>
+            <button
+              onClick={() => setFullscreen(f => !f)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 opacity-70 hover:opacity-100 hover:bg-gray-100 transition-all"
+              title="Fullscreen"
+            >
+              {fullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* docx-preview Native Viewer */}
+        <div className="flex-1 w-full overflow-y-auto" style={{ minHeight: "calc(100vh - 56px)" }}>
+          <DocxViewer fileUrl={absoluteFileUrl} />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── For external links / EPUB: show open-in-new-tab view ────────────────────
+  if (hasExternalLink || fileType === "epub") {
+    return (
+      <div className={`flex flex-col min-h-screen ${t.bg}`}>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b bg-white shadow-sm sticky top-0 z-40">
+          <button
+            onClick={() => setLocation(`/books/${id}`)}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:opacity-70 transition-opacity"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <p className="text-sm font-semibold text-gray-900 truncate max-w-xs">{displayBook.title}</p>
+          <a
+            href={displayBook.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+          >
+            <Download className="w-3.5 h-3.5" /> Download File
+          </a>
+        </div>
+
+        <div className="flex flex-col items-center justify-center flex-1 gap-6 p-8 text-center">
+          {displayBook.coverUrl && (
+            <img src={displayBook.coverUrl} alt={displayBook.title} className="w-28 h-40 object-cover rounded-xl shadow-lg" />
+          )}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">{displayBook.title}</h1>
+            <p className="text-gray-500">{displayBook.author}</p>
+          </div>
+          <div className="max-w-md bg-blue-50 border border-blue-200 rounded-2xl p-6 space-y-4">
+            <p className="text-sm text-blue-800 font-medium">
+              This book has a digital file attached. Click below to open or download it.
+            </p>
+            <a
+              href={displayBook.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              <Download className="w-4 h-4" /> Open Book File
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Default: Text content reader ────────────────────────────────────────────
   const finalContent = displayBook.content || (
     `# ${displayBook.title}\n` +
     `## Introduction\n${displayBook.description || "No description available."}\n\n` +
@@ -289,71 +519,47 @@ export default function ReadPage() {
         className="flex-1 overflow-y-auto"
         style={{ scrollBehavior: "smooth" }}
       >
-        <div className="max-w-2xl mx-auto px-6 py-10 pb-24">
+        <div className="max-w-4xl mx-auto px-6 py-10 pb-24">
           {/* Book header */}
           <div className="text-center mb-12">
             {displayBook.coverUrl && (
-              <img
-                src={displayBook.coverUrl}
-                alt={displayBook.title}
-                className="w-32 h-44 object-cover rounded-xl shadow-lg mx-auto mb-8"
-              />
+              <img src={displayBook.coverUrl} alt={displayBook.title} className="w-32 h-44 object-cover rounded-xl shadow-lg mx-auto mb-8" />
             )}
-            <h1 className={`font-serif font-bold text-3xl md:text-4xl leading-tight mb-3 ${t.text}`}>
-              {displayBook.title}
-            </h1>
+            <h1 className={`font-serif font-bold text-3xl md:text-4xl leading-tight mb-3 ${t.text}`}>{displayBook.title}</h1>
             <p className={`text-lg ${t.text} opacity-60 mb-1`}>{displayBook.author}</p>
-            {displayBook.publishedYear && (
-              <p className={`text-sm ${t.text} opacity-40`}>{displayBook.publishedYear}</p>
-            )}
+            {displayBook.publishedYear && <p className={`text-sm ${t.text} opacity-40`}>{displayBook.publishedYear}</p>}
             <div className={`mt-6 w-16 h-0.5 mx-auto ${theme === "dark" ? "bg-gray-700" : "bg-gray-300"}`} />
           </div>
 
           {/* Content */}
-          {hasContent ? (
-            <div className="space-y-6">
-              {renderContent(finalContent, FONT_SIZES[fontIdx], LINE_HEIGHTS[lineHeight], t.text)}
-            </div>
-          ) : (
-            /* No content — show description + placeholder */
-            <div className="space-y-8">
-              <div className={`rounded-2xl p-6 ${t.page}`}>
-                <p className={`text-sm font-semibold uppercase tracking-widest mb-3 ${t.text} opacity-40`}>About this book</p>
-                <p className={`${FONT_SIZES[fontIdx]} ${LINE_HEIGHTS[lineHeight]} ${t.text} opacity-80 leading-relaxed`}>
-                  {displayBook.description}
-                </p>
+          <div className="space-y-2 w-full">
+            {finalContent.trim().startsWith("<") ? (
+              <div className="flex justify-center w-full pb-12">
+                <div 
+                  className={`prose max-w-[816px] w-full bg-white text-black shadow-xl shadow-black/10 mx-auto px-10 py-16 sm:px-20 sm:py-24 border border-gray-200 [&>p]:mb-0 [&>img]:mx-auto [&>img]:my-6 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:p-2 [&_th]:border [&_th]:p-2`}
+                  style={{ minHeight: "1056px" }}
+                  dangerouslySetInnerHTML={{ __html: finalContent }} 
+                />
               </div>
-              <div className={`rounded-2xl border-2 border-dashed p-8 text-center ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
-                <Type className={`w-8 h-8 mx-auto mb-3 ${t.text} opacity-30`} />
-                <p className={`font-semibold mb-1 ${t.text} opacity-60`}>Full text not yet available</p>
-                <p className={`text-sm ${t.text} opacity-40 mb-4`}>
-                  An admin or librarian can add the full book content.
-                </p>
-                {displayBook.isAvailablePhysical && (
-                  <p className={`text-sm ${t.text} opacity-50`}>
-                    Physical copy available at <strong>{displayBook.campus}</strong> library ({displayBook.availableCopies ?? 0} copies).
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+            ) : (
+              renderContent(finalContent, FONT_SIZES[fontIdx], LINE_HEIGHTS[lineHeight], t.text)
+            )}
+          </div>
 
           {/* End of book */}
-          {hasContent && (
-            <div className={`mt-16 pt-8 border-t text-center ${theme === "dark" ? "border-gray-800" : "border-gray-200"}`}>
-              <div className={`text-2xl mb-3`}>✦</div>
-              <p className={`font-serif text-lg italic ${t.text} opacity-50`}>End of book</p>
-              <p className={`text-sm ${t.text} opacity-30 mt-1`}>{displayBook.title} · {displayBook.author}</p>
-              <div className="flex justify-center gap-3 mt-6">
-                <Button variant="outline" onClick={() => setLocation("/books")} className={theme === "dark" ? "border-gray-700 text-gray-300 hover:bg-gray-800" : ""}>
-                  Browse More Books
-                </Button>
-                <Button onClick={handleDownload} className="gap-2">
-                  <Download className="w-4 h-4" /> Download
-                </Button>
-              </div>
+          <div className={`mt-16 pt-8 border-t text-center ${theme === "dark" ? "border-gray-800" : "border-gray-200"}`}>
+            <div className="text-2xl mb-3">✦</div>
+            <p className={`font-serif text-lg italic ${t.text} opacity-50`}>End of book</p>
+            <p className={`text-sm ${t.text} opacity-30 mt-1`}>{displayBook.title} · {displayBook.author}</p>
+            <div className="flex justify-center gap-3 mt-6">
+              <Button variant="outline" onClick={() => setLocation("/books")} className={theme === "dark" ? "border-gray-700 text-gray-300 hover:bg-gray-800" : ""}>
+                Browse More Books
+              </Button>
+              <Button onClick={handleDownload} className="gap-2">
+                <Download className="w-4 h-4" /> Download
+              </Button>
             </div>
-          )}
+          </div>
         </div>
       </div>
 

@@ -90,8 +90,31 @@ router.post("/upload/file", requireAuth, requireRole("admin", "librarian"), asyn
     const buffer = Buffer.from(base64Data, "base64");
     await fs.promises.writeFile(filePath, buffer);
 
+    let extractedText: string | null = null;
+    if (ext === "pdf") {
+      try {
+        // pdf-parse is externalized — load via the CJS require injected by the build banner
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (globalThis as any).require("pdf-parse");
+        const data = await pdfParse(buffer);
+        extractedText = data.text;
+      } catch (parseErr) {
+        req.log?.warn({ parseErr }, "Failed to parse PDF text");
+      }
+    } else if (ext === "docx" || ext === "doc") {
+      try {
+        // mammoth is externalized — load via the CJS require injected by the build banner
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mammoth = (globalThis as any).require("mammoth");
+        const result = await mammoth.convertToHtml({ buffer });
+        extractedText = result.value;
+      } catch (parseErr) {
+        req.log?.warn({ parseErr }, "Failed to parse DOCX html");
+      }
+    }
+
     const fileUrl = `/uploads/files/${filename}`;
-    return res.status(201).json({ fileUrl, filename });
+    return res.status(201).json({ fileUrl, filename, extractedText });
   } catch (err: any) {
     req.log?.error({ err }, "Failed to upload file");
     return res.status(500).json({ error: "Failed to upload file: " + (err.message || "Unknown error") });
