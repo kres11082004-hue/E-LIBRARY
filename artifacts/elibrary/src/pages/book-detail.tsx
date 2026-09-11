@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import {
   useGetBook,
@@ -35,6 +36,8 @@ export default function BookDetailPage() {
   const removeMutation = useRemoveFromMyList();
   const createReservation = useCreateReservation();
   const cancelReservation = useDeleteReservation();
+
+  const [imgError, setImgError] = useState(false);
 
   const inMyList = myList.some(item => item.bookId === id);
 
@@ -139,12 +142,18 @@ export default function BookDetailPage() {
             className="w-full md:w-48 h-64 bg-muted rounded-xl overflow-hidden shadow-md cursor-pointer group relative"
             onClick={() => setLocation(`/books/${id}/read`)}
           >
-            {book.coverUrl ? (
-              <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            {book.coverUrl && !imgError ? (
+              <img
+                src={book.coverUrl}
+                alt={book.title}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                <BookOpen className="w-10 h-10 opacity-30" />
-                <span className="text-xs text-center px-4">{book.category}</span>
+              <div className="w-full h-full bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex flex-col items-center justify-center p-4 text-center text-white relative">
+                <BookOpen className="w-10 h-10 opacity-40 mb-2" />
+                <span className="text-sm font-bold line-clamp-3 leading-tight">{book.title}</span>
+                <span className="text-xs text-slate-300 mt-2 opacity-80">{book.category}</span>
               </div>
             )}
             <div className="absolute inset-0 bg-primary/80 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">

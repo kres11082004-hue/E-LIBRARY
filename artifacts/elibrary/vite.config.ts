@@ -140,7 +140,7 @@ export default defineConfig({
   },
   server: {
     port,
-    strictPort: true,
+    strictPort: false,
     host: "0.0.0.0",
     allowedHosts: true,
     fs: {
@@ -148,6 +148,10 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
+        target: `http://localhost:${process.env.API_PORT || 8080}`,
+        changeOrigin: true,
+      },
+      "/uploads": {
         target: `http://localhost:${process.env.API_PORT || 8080}`,
         changeOrigin: true,
       },
@@ -159,6 +163,10 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
+        target: `http://localhost:${process.env.API_PORT || 8080}`,
+        changeOrigin: true,
+      },
+      "/uploads": {
         target: `http://localhost:${process.env.API_PORT || 8080}`,
         changeOrigin: true,
       },

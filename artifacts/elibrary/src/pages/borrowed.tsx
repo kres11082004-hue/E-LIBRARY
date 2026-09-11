@@ -83,7 +83,7 @@ export default function BorrowedPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto space-y-4 animate-pulse">
+      <div className="p-6 max-w-7xl mx-auto space-y-4 animate-pulse">
         <div className="h-8 bg-muted rounded w-48" />
         <div className="h-4 bg-muted rounded w-80" />
         <div className="h-10 bg-muted rounded w-full mt-6" />
@@ -101,7 +101,7 @@ export default function BorrowedPage() {
   const returnedBorrows = records.filter((r) => r.status === "returned");
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       <BackButton />
       {/* Page Header */}
       <div>
@@ -262,8 +262,8 @@ function BorrowList({ records, getDueStatus, formatDateTime, onRowClick }: Borro
             }`}
           >
             {/* Book Details */}
-            <div className="flex gap-4 items-start min-w-0">
-              <div className="w-12 h-16 bg-muted border rounded overflow-hidden shrink-0 flex items-center justify-center">
+            <div className="flex gap-5 items-center min-w-0 py-1">
+              <div className="w-20 h-28 bg-muted border rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
                 {record.book?.coverUrl ? (
                   <img
                     src={record.book.coverUrl}
@@ -271,16 +271,16 @@ function BorrowList({ records, getDueStatus, formatDateTime, onRowClick }: Borro
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <BookOpen className="w-5 h-5 text-muted-foreground/40" />
+                  <BookOpen className="w-8 h-8 text-muted-foreground/40" />
                 )}
               </div>
-              <div className="min-w-0 space-y-0.5">
-                <h4 className="font-semibold text-sm text-foreground line-clamp-1 leading-snug">
+              <div className="min-w-0 space-y-1">
+                <h4 className="font-bold text-lg text-foreground line-clamp-2 leading-snug">
                   {record.book?.title}
                 </h4>
-                <p className="text-xs text-muted-foreground">{record.book?.author}</p>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-[11px] text-muted-foreground">
-                  <span className="px-1.5 py-0.5 bg-secondary text-secondary-foreground rounded">
+                <p className="text-sm text-muted-foreground">{record.book?.author}</p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-sm text-muted-foreground">
+                  <span className="px-2.5 py-0.5 bg-secondary text-secondary-foreground rounded-full">
                     {record.book?.category}
                   </span>
                   <span>•</span>
@@ -290,47 +290,47 @@ function BorrowList({ records, getDueStatus, formatDateTime, onRowClick }: Borro
             </div>
 
             {/* Time stamps */}
-            <div className="grid grid-cols-2 md:flex md:items-center gap-x-6 gap-y-2 text-xs shrink-0 w-full md:w-auto pt-3 md:pt-0 border-t md:border-0 border-dashed border-card-border">
+            <div className="grid grid-cols-2 md:flex md:items-center gap-x-8 gap-y-3 text-sm shrink-0 w-full md:w-auto pt-4 md:pt-0 border-t md:border-0 border-dashed border-card-border">
               {/* Date Borrowed */}
-              <div className="space-y-0.5">
-                <p className="text-muted-foreground font-medium text-[10px] uppercase tracking-wider flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-primary" /> {record.status === "pending approval" ? "Requested" : "Borrowed"}
+              <div className="space-y-1">
+                <p className="text-muted-foreground font-medium text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-primary" /> {record.status === "pending approval" ? "Requested" : "Borrowed"}
                 </p>
-                <p className="font-semibold text-foreground">{borrowed.date}</p>
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-muted-foreground/60" /> {borrowed.time}
+                <p className="font-semibold text-base text-foreground">{borrowed.date}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground/60" /> {borrowed.time}
                 </p>
               </div>
 
               {/* Date Returned or Due Date */}
               {record.status === "returned" ? (
-                <div className="space-y-0.5">
-                  <p className="text-green-600 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Returned
+                <div className="space-y-1">
+                  <p className="text-green-600 font-medium text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Returned
                   </p>
-                  <p className="font-semibold text-green-700">{returned.date}</p>
-                  <p className="text-[11px] text-green-600/80 flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> {returned.time}
+                  <p className="font-semibold text-base text-green-700">{returned.date}</p>
+                  <p className="text-xs text-green-600/80 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" /> {returned.time}
                   </p>
                 </div>
               ) : record.status === "pending approval" || record.status === "approved (pickup)" ? (
-                <div className="space-y-0.5">
-                  <p className="text-muted-foreground font-medium text-[10px] uppercase tracking-wider flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-amber-600" /> Status
+                <div className="space-y-1">
+                  <p className="text-muted-foreground font-medium text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-amber-600" /> Status
                   </p>
-                  <p className="font-semibold text-foreground">
+                  <p className="font-semibold text-base text-foreground">
                     Awaiting Action
                   </p>
                 </div>
               ) : (
-                <div className="space-y-0.5">
-                  <p className="text-muted-foreground font-medium text-[10px] uppercase tracking-wider flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-amber-600" /> Return Due
+                <div className="space-y-1">
+                  <p className="text-muted-foreground font-medium text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-amber-600" /> Return Due
                   </p>
-                  <p className={`font-semibold ${isOverdue ? "text-destructive" : "text-foreground"}`}>
+                  <p className={`font-semibold text-base ${isOverdue ? "text-destructive" : "text-foreground"}`}>
                     {due.date}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     by 11:59 PM
                   </p>
                 </div>
@@ -338,9 +338,9 @@ function BorrowList({ records, getDueStatus, formatDateTime, onRowClick }: Borro
             </div>
 
             {/* Badges / Alerts */}
-            <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center w-full md:w-28 shrink-0 pt-2 md:pt-0">
-              <span className="md:hidden text-xs text-muted-foreground">Status</span>
-              <div className="space-y-1 text-right">
+            <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center w-full md:w-32 shrink-0 pt-3 md:pt-0">
+              <span className="md:hidden text-sm text-muted-foreground">Status</span>
+              <div className="space-y-2 text-right">
                 <Badge
                   variant={
                     record.status === "returned"
@@ -349,7 +349,7 @@ function BorrowList({ records, getDueStatus, formatDateTime, onRowClick }: Borro
                       ? "destructive"
                       : "secondary"
                   }
-                  className={`capitalize font-semibold text-[11px] ${
+                  className={`capitalize font-bold text-xs py-1 px-2.5 ${
                     record.status === "returned"
                       ? "bg-green-100 text-green-700 hover:bg-green-200 border-transparent dark:bg-green-950 dark:text-green-300"
                       : record.status === "pending approval"

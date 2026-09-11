@@ -36,17 +36,8 @@ const ASSOCIATE_COURSES = new Set([
 ]);
 
 const COURSES = [
-  "Bachelor of Science in Computer Science",
-  "Bachelor of Science in Information Technology",
   "Bachelor of Science in Information System",
-  "Bachelor of Science in Education",
-  "Bachelor of Science in Nursing",
-  "Bachelor of Science in Business Administration",
-  "Bachelor of Science in Engineering",
   "Bachelor of Physical Education",
-  "Bachelor of Arts in Communication",
-  "Bachelor of Science in Accountancy",
-  "Associate in Computer Technology",
 ];
 
 const YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
@@ -149,12 +140,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background watermark overlay */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none select-none flex items-center justify-center">
-        <img src="/logo.jpg" alt="" className="w-[450px] h-[450px] object-contain" />
-      </div>
-
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
       <div className="w-full max-w-lg z-10">
         <div className="flex items-center gap-3 mb-8">
           <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-8 h-8 rounded-full bg-white p-0.5 object-cover shrink-0" />

@@ -11,6 +11,7 @@ import monitoringRouter from "./monitoring.js";
 import authorizedUsersRouter from "./authorized-users.js";
 import reportsRouter from "./reports.js";
 import downloadsRouter from "./downloads.js";
+import uploadRouter from "./upload.js";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(monitoringRouter);
 router.use(authorizedUsersRouter);
 router.use(reportsRouter);
 router.use(downloadsRouter);
+router.use(uploadRouter);
 
 export default router;

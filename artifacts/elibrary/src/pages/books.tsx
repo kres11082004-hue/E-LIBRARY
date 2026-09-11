@@ -11,11 +11,12 @@ import { Search, BookOpen, BookMarked, Filter, BookText, Download, Plus } from "
 import { triggerBookDownload } from "@/lib/download-helper";
 import { BackButton } from "@/components/back-button";
 
-const CATEGORIES = ["All", "Fiction", "Non-Fiction", "Science", "Technology", "History", "Philosophy", "Mathematics", "Literature", "Reference", "Thesis"];
+const CATEGORIES = ["All", "Computer Science", "Information Systems", "Programming", "Database Management", "Networking & Security", "Physical Education", "Sports Science", "Health & Fitness", "Mathematics", "General Education", "Thesis & Research"];
 
 function BookCard({ book, inMyList, userId, onAdd }: { book: any; inMyList: boolean; userId?: number; onAdd: () => void }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [imgError, setImgError] = useState(false);
 
   return (
     <div
@@ -24,16 +25,18 @@ function BookCard({ book, inMyList, userId, onAdd }: { book: any; inMyList: bool
     >
       {/* Cover Image */}
       <div className="h-44 bg-muted flex items-center justify-center overflow-hidden relative">
-        {book.coverUrl ? (
+        {book.coverUrl && !imgError ? (
           <img
             src={book.coverUrl}
             alt={book.title}
+            onError={() => setImgError(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <BookOpen className="w-10 h-10 opacity-30" />
-            <span className="text-xs">{book.category}</span>
+          <div className="w-full h-full bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex flex-col items-center justify-center p-3 text-center text-white relative">
+            <BookOpen className="w-8 h-8 opacity-40 mb-1 z-10" />
+            <span className="text-xs font-bold line-clamp-2 z-10 leading-tight">{book.title}</span>
+            <span className="text-[10px] text-slate-300 mt-1 z-10 opacity-80">{book.category}</span>
           </div>
         )}
 

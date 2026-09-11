@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, authorizedUsersTable } from "@workspace/db";
-import { eq, ilike, and, isNull } from "drizzle-orm";
+import { eq, ilike, and, isNull, asc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
@@ -14,7 +14,7 @@ router.get("/authorized-users", requireAuth, async (req, res) => {
   const { search, role } = req.query;
   let query = db.select().from(authorizedUsersTable).$dynamic();
 
-  const rows = await db.select().from(authorizedUsersTable);
+  const rows = await db.select().from(authorizedUsersTable).orderBy(asc(authorizedUsersTable.fullName));
 
   let filtered = rows;
   if (role && role !== "All") {

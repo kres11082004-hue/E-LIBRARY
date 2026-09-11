@@ -3,7 +3,7 @@ import { useListBooks, useGetMyList, useGetMonitoringStats, useGetRecentActivity
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { BookOpen, BookMarked, Users, TrendingUp, Clock, ArrowRight, Library } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
 import { BackButton } from "@/components/back-button";
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
@@ -113,52 +113,6 @@ export default function HomePage() {
           <StatCard label="Overdue" value={stats.overdueBooks ?? 0} icon={TrendingUp} color="bg-red-500/10 text-red-600" />
         </div>
       )}
-
-      {/* User Analytics (Student / Instructor) */}
-      {!isAdmin && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-card border rounded-xl p-4">
-            <h3 className="font-semibold text-sm text-foreground mb-4">Your Most Browsed Books</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart 
-                data={[
-                  { title: "Database Systems", views: 12 },
-                  { title: "Computer Science", views: 9 },
-                  { title: "Understanding Algorithms", views: 7 },
-                  { title: "Physics Vol 1", views: 4 },
-                ]} 
-                margin={{ top: 0, right: 20, left: 0, bottom: 0 }} 
-                layout="vertical"
-              >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={true} vertical={false} />
-                <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis dataKey="title" type="category" tick={{ fontSize: 11 }} width={120} />
-                <Tooltip cursor={{fill: 'var(--muted)'}} />
-                <Bar dataKey="views" name="Views" fill="hsl(280,60%,55%)" radius={[0,4,4,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-card border rounded-xl p-4">
-            <h3 className="font-semibold text-sm text-foreground mb-4">Your Most Borrowed Books</h3>
-            {myBorrowedData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={myBorrowedData} margin={{ top: 0, right: 20, left: 0, bottom: 0 }} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={true} vertical={false} />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="title" type="category" tick={{ fontSize: 11 }} width={120} />
-                  <Tooltip cursor={{fill: 'var(--muted)'}} />
-                  <Bar dataKey="count" name="Borrows" fill="hsl(var(--primary))" radius={[0,4,4,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">You haven't borrowed any books yet.</div>
-            )}
-          </div>
-        </div>
-      )}
-
-
 
       <div className="space-y-4">
         {/* Recently Added Books */}

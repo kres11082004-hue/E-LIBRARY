@@ -29,15 +29,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex relative overflow-hidden">
+    <div className="min-h-screen flex relative overflow-hidden">
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col justify-between p-12">
-        {/* Background Logo Seal Watermark */}
-        <div className="absolute -right-12 -bottom-12 w-96 h-96 opacity-10 pointer-events-none select-none">
-          <img src="/logo.jpg" alt="" className="w-full h-full object-contain filter invert brightness-200" />
-        </div>
-
-        <div className="flex items-center gap-3 z-10">
+      <div className="flex items-center gap-3 z-10">
           <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-9 h-9 rounded-full bg-white p-0.5 object-cover shrink-0" />
           <div>
             <p className="font-bold text-lg text-primary-foreground leading-tight">ZDSPGC E-Library</p>
@@ -62,11 +57,6 @@ export default function LoginPage() {
 
       {/* Right Panel */}
       <div className="flex-1 flex items-center justify-center p-8 z-10 relative">
-        {/* Background watermark overlay for mobile */}
-        <div className="lg:hidden absolute inset-0 opacity-[0.03] pointer-events-none select-none flex items-center justify-center">
-          <img src="/logo.jpg" alt="" className="w-80 h-80 object-contain" />
-        </div>
-
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <img src="/logo.jpg" alt="ZDSPGC Logo" className="w-8 h-8 rounded-full bg-white p-0.5 object-cover shrink-0" />

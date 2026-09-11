@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useGetMonitoringStats, useListBorrowRecords, useListUsers } from "@workspace/api-client-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, BookOpen, AlertTriangle, BookMarked } from "lucide-react";
 
+import { Users, BookOpen, AlertTriangle, BookMarked, Building2, GraduationCap } from "lucide-react";
 import { Link } from "wouter";
 import { BackButton } from "@/components/back-button";
+import { getCourseInfo, DEPARTMENTS } from "@/lib/department-utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 function StatCard({ label, value, icon: Icon, color, href }: { label: string; value: number; icon: React.ElementType; color: string; href: string }) {
   const CardContent = (
@@ -27,15 +30,40 @@ function StatCard({ label, value, icon: Icon, color, href }: { label: string; va
   );
 }
 
+const DEPT_COLORS: Record<string, string> = {
+  "Department of Information System (BSIS)": "hsl(217, 91%, 55%)",
+  "Department of Physical Education (BPED)": "hsl(160, 84%, 39%)",
+};
+
 export default function AdminDashboardPage() {
   const { data: stats } = useGetMonitoringStats();
   const { data: borrows = [] } = useListBorrowRecords();
   const { data: users = [] } = useListUsers();
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("All");
 
   const topBooksMap = new Map<string, number>();
   const borrowsByYearMap = new Map<string, number>();
-  const borrowsByCourseMap = new Map<string, number>();
+  const borrowsByCourseMap = new Map<string, { code: string; fullName: string; department: string; count: number }>();
+  const borrowsByDeptMap = new Map<string, { department: string; borrows: number; students: number }>();
 
+  // Initialize departments
+  DEPARTMENTS.forEach(dept => {
+    borrowsByDeptMap.set(dept, { department: dept, borrows: 0, students: 0 });
+  });
+
+  // Aggregate user counts per department
+  users.forEach(u => {
+    if (u.role === "student") {
+      const info = getCourseInfo(u.course);
+      if (borrowsByDeptMap.has(info.department)) {
+        borrowsByDeptMap.get(info.department)!.students += 1;
+      } else {
+        borrowsByDeptMap.set(info.department, { department: info.department, borrows: 0, students: 1 });
+      }
+    }
+  });
+
+  // Aggregate borrows
   borrows.forEach(b => {
     if (b.book?.title) {
       topBooksMap.set(b.book.title, (topBooksMap.get(b.book.title) || 0) + 1);
@@ -44,21 +72,37 @@ export default function AdminDashboardPage() {
     if (user?.year) {
       borrowsByYearMap.set(user.year, (borrowsByYearMap.get(user.year) || 0) + 1);
     }
-    if (user?.course) {
-      borrowsByCourseMap.set(user.course, (borrowsByCourseMap.get(user.course) || 0) + 1);
+    
+    const info = getCourseInfo(user?.course);
+    const key = info.code;
+    if (!borrowsByCourseMap.has(key)) {
+      borrowsByCourseMap.set(key, { code: info.code, fullName: info.fullName, department: info.department, count: 0 });
+    }
+    borrowsByCourseMap.get(key)!.count += 1;
+
+    if (borrowsByDeptMap.has(info.department)) {
+      borrowsByDeptMap.get(info.department)!.borrows += 1;
     }
   });
 
   const topBooksData = Array.from(topBooksMap.entries()).map(([title, count]) => ({ title, count })).sort((a, b) => b.count - a.count).slice(0, 10);
   const borrowsByYearData = Array.from(borrowsByYearMap.entries()).map(([year, borrows]) => ({ year, borrows })).sort((a, b) => a.year.localeCompare(b.year));
-  const borrowsByCourseData = Array.from(borrowsByCourseMap.entries()).map(([course, borrows]) => ({ course, borrows })).sort((a, b) => b.borrows - a.borrows).slice(0, 10);
+  const borrowsByCourseData = Array.from(borrowsByCourseMap.values()).sort((a, b) => b.count - a.count);
+  const borrowsByDeptData = Array.from(borrowsByDeptMap.values()).filter(d => d.students > 0 || d.borrows > 0);
+
+  // Filtered course data for Department breakdown
+  const filteredCoursesData = selectedDeptFilter === "All"
+    ? borrowsByCourseData
+    : borrowsByCourseData.filter(c => c.department === selectedDeptFilter);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <BackButton />
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Overview of library activity and usage</p>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          Dashboard
+        </h1>
+        <p className="text-muted-foreground text-sm mt-0.5">Overview of library activity, courses, and department metrics</p>
       </div>
 
       {stats && (
@@ -70,81 +114,79 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card border rounded-xl p-4 lg:col-span-1">
-          <h3 className="font-semibold text-sm text-foreground mb-4">Most Borrowed Books (Physical)</h3>
-          {topBooksData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topBooksData} margin={{ top: 0, right: 20, left: 0, bottom: 0 }} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={true} vertical={false} />
-                <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis dataKey="title" type="category" tick={{ fontSize: 11 }} width={120} />
-                <Tooltip cursor={{fill: 'var(--muted)'}} />
-                <Bar dataKey="count" name="Borrows" fill="hsl(var(--primary))" radius={[0,4,4,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">No data available</div>
-          )}
+      {/* DEPARTMENT BY COURSE SECTION */}
+      <div className="bg-card border rounded-xl p-6 space-y-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b">
+          <div>
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-primary" />
+              Department by Course Breakdown
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Categorized analytics separating <strong>BSIS</strong> (Information System) &amp; <strong>BPED</strong> (Physical Education)
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Select value={selectedDeptFilter} onValueChange={setSelectedDeptFilter}>
+              <SelectTrigger className="w-[240px]">
+                <SelectValue placeholder="Filter Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Departments</SelectItem>
+                {DEPARTMENTS.map(d => (
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="bg-card border rounded-xl p-4 lg:col-span-1">
-          <h3 className="font-semibold text-sm text-foreground mb-4">Most Browsed Books (Online)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart 
-              data={[
-                { title: "Advanced Mathematics", views: 450 },
-                { title: "Introduction to Programming", views: 380 },
-                { title: "World History", views: 310 },
-                { title: "Physics Vol 1", views: 250 },
-                { title: "Basic Chemistry", views: 190 },
-                { title: "Literature 101", views: 150 },
-              ]} 
-              margin={{ top: 0, right: 20, left: 0, bottom: 0 }} 
-              layout="vertical"
-            >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={true} vertical={false} />
-              <XAxis type="number" tick={{ fontSize: 11 }} />
-              <YAxis dataKey="title" type="category" tick={{ fontSize: 11 }} width={120} />
-              <Tooltip cursor={{fill: 'var(--muted)'}} />
-              <Bar dataKey="views" name="Views" fill="hsl(280,60%,55%)" radius={[0,4,4,0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        {/* Clickable Department Cards for BSIS & BPED */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link href="/admin/books?department=BSIS">
+            <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent border border-blue-500/30 rounded-xl p-5 flex items-center justify-between hover:shadow-lg hover:border-blue-500/60 transition-all cursor-pointer group">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="bg-blue-600 text-white group-hover:bg-blue-700">BSIS</Badge>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dept. of Information System (BSIS)</span>
+                </div>
+                <p className="font-bold text-foreground text-sm mt-1.5 group-hover:text-blue-600 transition-colors">Bachelor of Science in Information System</p>
+                <p className="text-xs text-blue-600 font-medium mt-1 flex items-center gap-1">
+                  Click to view &amp; add department books &rarr;
+                </p>
+              </div>
+              <div className="text-right pl-3 shrink-0">
+                <p className="text-3xl font-extrabold text-blue-600">
+                  {borrowsByCourseMap.get("BSIS")?.count || 0}
+                </p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase">Borrows</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/admin/books?department=BPED">
+            <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/30 rounded-xl p-5 flex items-center justify-between hover:shadow-lg hover:border-emerald-500/60 transition-all cursor-pointer group">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="bg-emerald-600 text-white group-hover:bg-emerald-700">BPED</Badge>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dept. of Physical Education (BPED)</span>
+                </div>
+                <p className="font-bold text-foreground text-sm mt-1.5 group-hover:text-emerald-600 transition-colors">Bachelor of Physical Education</p>
+                <p className="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
+                  Click to view &amp; add department books &rarr;
+                </p>
+              </div>
+              <div className="text-right pl-3 shrink-0">
+                <p className="text-3xl font-extrabold text-emerald-600">
+                  {borrowsByCourseMap.get("BPED")?.count || 0}
+                </p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase">Borrows</p>
+              </div>
+            </div>
+          </Link>
         </div>
 
-        <div className="bg-card border rounded-xl p-4">
-          <h3 className="font-semibold text-sm text-foreground mb-4">Borrows by Year Level</h3>
-          {borrowsByYearData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={borrowsByYearData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
-                <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip cursor={{fill: 'var(--muted)'}} />
-                <Bar dataKey="borrows" name="Borrows" fill="hsl(220,60%,30%)" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">No data available</div>
-          )}
-        </div>
-
-        <div className="bg-card border rounded-xl p-4">
-          <h3 className="font-semibold text-sm text-foreground mb-4">Borrows by Course</h3>
-          {borrowsByCourseData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={borrowsByCourseData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
-                <XAxis dataKey="course" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip cursor={{fill: 'var(--muted)'}} />
-                <Bar dataKey="borrows" name="Borrows" fill="hsl(40,70%,55%)" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">No data available</div>
-          )}
-        </div>
       </div>
     </div>
   );

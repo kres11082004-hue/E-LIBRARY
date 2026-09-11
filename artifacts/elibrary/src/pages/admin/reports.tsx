@@ -7,10 +7,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useQuery } from "@tanstack/react-query";
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfWeek, startOfMonth, isAfter, isBefore } from "date-fns";
-import { Printer, FileText, Users, BookOpen, BookMarked, AlertTriangle, Building, GraduationCap, Search, CalendarIcon, Download } from "lucide-react";
+import { Printer, FileText, Users, BookOpen, BookMarked, AlertTriangle, Building, Building2, GraduationCap, Search, CalendarIcon, Download } from "lucide-react";
 import { BackButton } from "@/components/back-button";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import { getCourseInfo } from "@/lib/department-utils";
 
 function Section({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
   return (
@@ -486,30 +487,38 @@ export default function AdminReportsPage() {
           </Section>
         )}
 
-        {/* By Course */}
+        {/* By Course & Department */}
         {byCourse.length > 0 && (
-          <Section title="Students by Course & Year Level" icon={GraduationCap}>
+          <Section title="Students by Department & Course" icon={GraduationCap}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-muted/50 print:bg-gray-100">
                     <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Course / Program</th>
-                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Year & Section</th>
+                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Department</th>
+                    <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Year &amp; Section</th>
                     <th className="text-left px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Campus</th>
                     <th className="text-right px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Students</th>
                     <th className="text-right px-3 py-2 border border-border print:border-gray-300 text-xs font-semibold uppercase tracking-wide">Active Borrows</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {byCourse.map((row, i) => (
-                    <tr key={i} className={i % 2 === 0 ? "bg-white print:bg-white" : "bg-muted/20 print:bg-gray-50"}>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 font-medium text-xs">{row.course}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600">{row.year} — Sec {row.section}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600 text-xs">{row.campus}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-right">{row.studentCount}</td>
-                      <td className="px-3 py-2 border border-border print:border-gray-300 text-right font-medium text-amber-600 print:text-black">{row.activeBorrows}</td>
-                    </tr>
-                  ))}
+                  {byCourse.map((row, i) => {
+                    const info = getCourseInfo(row.course);
+                    return (
+                      <tr key={i} className={i % 2 === 0 ? "bg-white print:bg-white" : "bg-muted/20 print:bg-gray-50"}>
+                        <td className="px-3 py-2 border border-border print:border-gray-300 font-medium text-xs">
+                          <span className="font-bold text-primary print:text-black mr-1.5">[{info.code}]</span>
+                          {row.course}
+                        </td>
+                        <td className="px-3 py-2 border border-border print:border-gray-300 text-xs text-muted-foreground print:text-gray-700">{info.department}</td>
+                        <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600">{row.year} — Sec {row.section}</td>
+                        <td className="px-3 py-2 border border-border print:border-gray-300 text-muted-foreground print:text-gray-600 text-xs">{row.campus}</td>
+                        <td className="px-3 py-2 border border-border print:border-gray-300 text-right">{row.studentCount}</td>
+                        <td className="px-3 py-2 border border-border print:border-gray-300 text-right font-medium text-amber-600 print:text-black">{row.activeBorrows}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

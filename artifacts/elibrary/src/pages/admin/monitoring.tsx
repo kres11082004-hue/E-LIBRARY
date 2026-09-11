@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useGetMonitoringStats, useGetMonitoringByCampus, useGetMonitoringByCourse, useGetRecentActivity, useListBorrowRecords, useCreateBorrowRecord, useUpdateBorrowRecord, useListUsers, getListBorrowRecordsQueryKey, getGetMonitoringStatsQueryKey, getListBooksQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, BookOpen, AlertTriangle, BookMarked, Building, GraduationCap, Clock, Plus, CheckCircle } from "lucide-react";
+import { Users, BookOpen, AlertTriangle, BookMarked, Building, Building2, GraduationCap, Clock, Plus, CheckCircle } from "lucide-react";
 import { BackButton } from "@/components/back-button";
+import { getCourseInfo, getDepartmentForCourse } from "@/lib/department-utils";
+import { Badge } from "@/components/ui/badge";
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
   return (
@@ -39,6 +41,18 @@ export default function AdminMonitoringPage() {
   const { data: activity = [] } = useGetRecentActivity();
   const { data: borrows = [] } = useListBorrowRecords();
   const { data: users = [] } = useListUsers();
+
+  const { data: byDepartment = [] } = useQuery({
+    queryKey: ["monitoring", "by-department"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/monitoring/by-department", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return [];
+      return res.json() as Promise<any[]>;
+    }
+  });
 
   const createBorrowMutation = useCreateBorrowRecord();
   const updateBorrowMutation = useUpdateBorrowRecord();
@@ -100,13 +114,64 @@ export default function AdminMonitoringPage() {
         </div>
       )}
 
-      <Tabs defaultValue="campus">
+      <Tabs defaultValue="department">
         <TabsList>
+          <TabsTrigger value="department" className="gap-2"><Building2 className="w-3 h-3" /> By Department</TabsTrigger>
           <TabsTrigger value="campus" className="gap-2"><Building className="w-3 h-3" /> By Campus</TabsTrigger>
           <TabsTrigger value="course" className="gap-2"><GraduationCap className="w-3 h-3" /> By Course</TabsTrigger>
           <TabsTrigger value="borrows" className="gap-2"><BookMarked className="w-3 h-3" /> Borrow Records</TabsTrigger>
           <TabsTrigger value="activity" className="gap-2"><Clock className="w-3 h-3" /> Activity</TabsTrigger>
         </TabsList>
+
+        {/* By Department */}
+        <TabsContent value="department" className="space-y-4 mt-4">
+          {byDepartment.length > 0 && (
+            <div className="bg-card border rounded-xl p-4">
+              <h3 className="font-semibold text-sm text-foreground mb-4">Students &amp; Active Borrows by Department</h3>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byDepartment} margin={{ top: 0, right: 0, left: -10, bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="department" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={50} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="students" name="Students" fill="hsl(220,70%,45%)" radius={[4,4,0,0]} />
+                  <Bar dataKey="instructors" name="Instructors" fill="hsl(150,60%,40%)" radius={[4,4,0,0]} />
+                  <Bar dataKey="activeBorrows" name="Active Borrows" fill="hsl(40,85%,48%)" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          <div className="bg-card border rounded-xl overflow-hidden">
+            <table className="w-full">
+              <thead className="border-b bg-muted/30">
+                <tr>
+                  <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase">Academic Department</th>
+                  <th className="text-right p-4 text-xs font-semibold text-muted-foreground uppercase">Students</th>
+                  <th className="text-right p-4 text-xs font-semibold text-muted-foreground uppercase">Instructors</th>
+                  <th className="text-right p-4 text-xs font-semibold text-muted-foreground uppercase">Total Users</th>
+                  <th className="text-right p-4 text-xs font-semibold text-muted-foreground uppercase">Active Borrows</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {byDepartment.length === 0 ? (
+                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground text-sm">No department data available</td></tr>
+                ) : (
+                  byDepartment.map((row: any) => (
+                    <tr key={row.department} className="hover:bg-muted/20">
+                      <td className="p-4 font-semibold text-sm text-foreground">
+                        {row.department}
+                      </td>
+                      <td className="p-4 text-right text-sm">{row.students}</td>
+                      <td className="p-4 text-right text-sm">{row.instructors}</td>
+                      <td className="p-4 text-right text-sm font-medium">{row.totalUsers}</td>
+                      <td className="p-4 text-right text-sm font-medium text-amber-600">{row.activeBorrows}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
 
         {/* By Campus */}
         <TabsContent value="campus" className="space-y-4 mt-4">
@@ -155,7 +220,8 @@ export default function AdminMonitoringPage() {
             <table className="w-full">
               <thead className="border-b bg-muted/30">
                 <tr>
-                  <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase">Course</th>
+                  <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase">Course / Program</th>
+                  <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase">Department</th>
                   <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase hidden md:table-cell">Year / Section</th>
                   <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase hidden lg:table-cell">Campus</th>
                   <th className="text-right p-4 text-xs font-semibold text-muted-foreground uppercase">Students</th>
@@ -164,16 +230,31 @@ export default function AdminMonitoringPage() {
               </thead>
               <tbody className="divide-y">
                 {byCourse.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground text-sm">No student data yet</td></tr>
-                ) : byCourse.map((row, i) => (
-                  <tr key={i} className="hover:bg-muted/20">
-                    <td className="p-4 text-sm font-medium max-w-xs"><span className="line-clamp-2">{row.course}</span></td>
-                    <td className="p-4 text-sm text-muted-foreground hidden md:table-cell">{row.year} — Sec {row.section}</td>
-                    <td className="p-4 text-sm text-muted-foreground hidden lg:table-cell">{row.campus}</td>
-                    <td className="p-4 text-right text-sm">{row.studentCount}</td>
-                    <td className="p-4 text-right text-sm font-medium text-amber-600">{row.activeBorrows}</td>
-                  </tr>
-                ))}
+                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground text-sm">No student data yet</td></tr>
+                ) : byCourse.map((row, i) => {
+                  const info = getCourseInfo(row.course);
+                  return (
+                    <tr key={i} className="hover:bg-muted/20">
+                      <td className="p-4 text-sm font-medium max-w-xs">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={
+                            info.code === "BSIS" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                            info.code === "BPED" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            "bg-muted text-muted-foreground"
+                          }>
+                            {info.code}
+                          </Badge>
+                          <span className="line-clamp-2">{row.course}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-xs text-muted-foreground font-medium">{info.department}</td>
+                      <td className="p-4 text-sm text-muted-foreground hidden md:table-cell">{row.year} — Sec {row.section}</td>
+                      <td className="p-4 text-sm text-muted-foreground hidden lg:table-cell">{row.campus}</td>
+                      <td className="p-4 text-right text-sm">{row.studentCount}</td>
+                      <td className="p-4 text-right text-sm font-medium text-amber-600">{row.activeBorrows}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

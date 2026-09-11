@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { db, usersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, usersTable, authorizedUsersTable, borrowRecordsTable, reservationsTable, myListTable, downloadsTable } from "@workspace/db";
+import { eq, asc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
+
 
 const router = Router();
 
@@ -24,7 +25,7 @@ router.get("/users", requireAuth, requireRole("admin", "librarian"), async (req,
     photoUrl: usersTable.photoUrl,
     isApproved: usersTable.isApproved,
     createdAt: usersTable.createdAt,
-  }).from(usersTable);
+  }).from(usersTable).orderBy(asc(usersTable.fullname));
 
   let filtered = users;
   if (campus) filtered = filtered.filter(u => u.campus === campus);
@@ -102,8 +103,26 @@ router.put("/users/:id", requireAuth, async (req, res) => {
 // DELETE /users/:id
 router.delete("/users/:id", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
   const id = parseInt(req.params["id"] as string);
-  await db.delete(usersTable).where(eq(usersTable.id, id));
-  return res.status(204).send();
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid user ID" });
+
+  try {
+    // Manually remove all dependent records to avoid FK constraint violations
+    // (cascade may not be applied on the actual DB if migrations weren't re-run)
+    await db.delete(borrowRecordsTable).where(eq(borrowRecordsTable.userId, id));
+    await db.delete(reservationsTable).where(eq(reservationsTable.userId, id));
+    await db.delete(myListTable).where(eq(myListTable.userId, id));
+    await db.delete(downloadsTable).where(eq(downloadsTable.userId, id));
+    await db.update(authorizedUsersTable)
+      .set({ linkedUserId: null })
+      .where(eq(authorizedUsersTable.linkedUserId, id));
+
+    await db.delete(usersTable).where(eq(usersTable.id, id));
+    return res.status(204).send();
+  } catch (err: any) {
+    console.error("[DELETE /users/:id] error:", err?.message ?? err);
+    return res.status(500).json({ error: "Failed to delete user", detail: err?.message });
+  }
 });
+
 
 export default router;

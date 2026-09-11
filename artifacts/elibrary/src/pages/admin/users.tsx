@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Trash2, Users, Filter, Building, Phone, MapPin, GraduationCap, Clock, Eye } from "lucide-react";
 import { BackButton } from "@/components/back-button";
@@ -45,6 +45,7 @@ export default function AdminUsersPage() {
   const [campus, setCampus] = useState("All");
   const [role, setRole] = useState("All");
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -60,13 +61,22 @@ export default function AdminUsersPage() {
     (!search || u.fullname.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+  const confirmDelete = (id: number, name: string) => {
+    setDeleteTarget({ id, name });
+    setSelectedUser(null); // close user detail modal if open
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteMutation.mutateAsync({ id });
+      await deleteMutation.mutateAsync({ id: deleteTarget.id });
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-      toast({ title: "User deleted" });
-    } catch { toast({ title: "Failed to delete", variant: "destructive" }); }
+      toast({ title: "User deleted", description: `"${deleteTarget.name}" has been removed.` });
+    } catch {
+      toast({ title: "Failed to delete", variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
 
@@ -154,7 +164,7 @@ export default function AdminUsersPage() {
                   size="sm"
                   variant="ghost"
                   className="flex-none h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
-                  onClick={(e) => { e.stopPropagation(); handleDelete(user.id, user.fullname); }}
+                  onClick={(e) => { e.stopPropagation(); confirmDelete(user.id, user.fullname); }}
                   disabled={deleteMutation.isPending}
                 >
                   <Trash2 className="w-3 h-3" />
@@ -239,10 +249,7 @@ export default function AdminUsersPage() {
               <Button
                 className="flex-1"
                 variant="destructive"
-                onClick={() => {
-                  handleDelete(selectedUser.id, selectedUser.fullname);
-                  setSelectedUser(null);
-                }}
+                onClick={() => confirmDelete(selectedUser.id, selectedUser.fullname)}
                 disabled={deleteMutation.isPending}
               >
                 <Trash2 className="w-4 h-4 mr-2" /> Delete User
@@ -250,6 +257,26 @@ export default function AdminUsersPage() {
             </div>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete User?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to permanently delete <strong>"{deleteTarget?.name}"</strong>? This action cannot be undone.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? "Deleting..." : "Delete User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

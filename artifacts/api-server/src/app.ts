@@ -4,7 +4,12 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
+import path from "path";
+
 const app: Express = express();
+
+const uploadsPath = path.resolve(process.cwd(), "uploads");
+app.use("/uploads", express.static(uploadsPath));
 
 app.use(
   pinoHttp({
@@ -26,8 +31,8 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 app.use("/api", router);
 

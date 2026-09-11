@@ -44,14 +44,14 @@ export default function MyListPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-3xl mx-auto space-y-4">
+      <div className="p-6 max-w-7xl mx-auto space-y-4">
         <div className="h-8 bg-muted rounded w-48 animate-pulse" />
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="bg-card border rounded-xl p-4 flex gap-4 animate-pulse">
-            <div className="w-14 h-20 bg-muted rounded-lg" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-muted rounded w-2/3" />
-              <div className="h-3 bg-muted rounded w-1/3" />
+            <div className="w-20 h-28 bg-muted rounded-lg" />
+            <div className="flex-1 space-y-3 py-2">
+              <div className="h-5 bg-muted rounded w-2/3" />
+              <div className="h-4 bg-muted rounded w-1/3" />
             </div>
           </div>
         ))}
@@ -60,7 +60,7 @@ export default function MyListPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       <BackButton />
       {/* Title */}
       <div>
@@ -118,7 +118,7 @@ export default function MyListPage() {
               >
                 {/* Cover */}
                 <Link href={`/books/${item.bookId}`}>
-                  <div className="w-14 h-20 bg-muted rounded-lg overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                  <div className="w-20 h-28 bg-muted rounded-lg overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
                     {item.book.coverUrl ? (
                       <img
                         src={item.book.coverUrl}
@@ -127,30 +127,30 @@ export default function MyListPage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-muted-foreground/50" />
+                        <BookOpen className="w-8 h-8 text-muted-foreground/50" />
                       </div>
                     )}
                   </div>
                 </Link>
 
                 {/* Info */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 py-1">
                   <Link href={`/books/${item.bookId}`}>
-                    <h3 className="font-semibold text-sm text-foreground hover:text-primary cursor-pointer line-clamp-2">
+                    <h3 className="font-bold text-lg text-foreground hover:text-primary cursor-pointer line-clamp-2">
                       {item.book.title}
                     </h3>
                   </Link>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {item.book.author}
                   </p>
                   {item.book.isbn && (
-                    <p className="text-xs text-muted-foreground/70 font-mono mt-0.5">ISBN: {item.book.isbn}</p>
+                    <p className="text-sm text-muted-foreground/70 font-mono mt-0.5">ISBN: {item.book.isbn}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-sm px-2.5 py-0.5 bg-secondary text-secondary-foreground rounded-full">
                       {item.book.category}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {item.book.campus}
                     </span>
                   </div>
@@ -159,8 +159,8 @@ export default function MyListPage() {
                 {/* Actions */}
                 <div className="flex flex-col gap-2 shrink-0 justify-between items-end">
                   <Link href={`/books/${item.bookId}/read`}>
-                    <Button size="sm" className="h-8 gap-1.5 text-xs">
-                      <BookOpen className="w-3.5 h-3.5" /> Read
+                    <Button className="h-9 gap-2 px-4">
+                      <BookOpen className="w-4 h-4" /> Read
                     </Button>
                   </Link>
                   <Button
@@ -201,7 +201,7 @@ export default function MyListPage() {
               >
                 {/* Cover */}
                 <Link href={`/books/${item.id}`}>
-                  <div className="w-14 h-20 bg-muted rounded-lg overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                  <div className="w-20 h-28 bg-muted rounded-lg overflow-hidden shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
                     {item.coverUrl ? (
                       <img
                         src={item.coverUrl}
@@ -210,31 +210,31 @@ export default function MyListPage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-muted-foreground/50" />
+                        <BookOpen className="w-8 h-8 text-muted-foreground/50" />
                       </div>
                     )}
                   </div>
                 </Link>
 
                 {/* Info */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 py-1">
                   <Link href={`/books/${item.id}`}>
-                    <h3 className="font-semibold text-sm text-foreground hover:text-primary cursor-pointer line-clamp-2">
+                    <h3 className="font-bold text-lg text-foreground hover:text-primary cursor-pointer line-clamp-2">
                       {item.title}
                     </h3>
                   </Link>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {item.author}
                   </p>
                   {item.isbn && (
-                    <p className="text-xs text-muted-foreground/70 font-mono mt-0.5">ISBN: {item.isbn}</p>
+                    <p className="text-sm text-muted-foreground/70 font-mono mt-0.5">ISBN: {item.isbn}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full">
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-sm px-2.5 py-0.5 bg-secondary text-secondary-foreground rounded-full">
                       {item.category}
                     </span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" /> Saved Locally
+                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-green-600" /> Saved Locally
                     </span>
                   </div>
                 </div>
@@ -242,8 +242,8 @@ export default function MyListPage() {
                 {/* Actions */}
                 <div className="flex flex-col gap-2 shrink-0 justify-between items-end">
                   <Link href={`/books/${item.id}/read`}>
-                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
-                      <Smartphone className="w-3.5 h-3.5 text-green-600 animate-pulse" /> Read Offline
+                    <Button variant="outline" className="h-9 gap-2 px-4">
+                      <Smartphone className="w-4 h-4 text-green-600 animate-pulse" /> Read Offline
                     </Button>
                   </Link>
                   <Button

@@ -133,7 +133,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col md:flex-row">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 bg-card border-r flex-col shrink-0 fixed top-0 left-0 bottom-0 z-30">
         <SidebarContent />

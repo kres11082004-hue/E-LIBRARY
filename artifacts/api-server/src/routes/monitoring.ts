@@ -53,18 +53,59 @@ router.get("/monitoring/by-campus", requireAuth, requireRole("admin", "librarian
   return res.json(result);
 });
 
+function getDepartmentForCourse(courseRaw?: string | null): string {
+  if (!courseRaw) return "Department of Information System (BSIS)";
+  const lower = courseRaw.trim().toLowerCase();
+  if (lower === "bped" || lower.includes("physical education") || lower.includes("pe")) {
+    return "Department of Physical Education (BPED)";
+  }
+  return "Department of Information System (BSIS)";
+}
+
+// GET /monitoring/by-department
+router.get("/monitoring/by-department", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
+  const users = await db.select().from(usersTable);
+  const borrows = await db.select().from(borrowRecordsTable);
+
+  const deptMap = new Map<string, { department: string; students: number; instructors: number; totalUsers: number; activeBorrows: number }>();
+
+  for (const user of users) {
+    const dept = getDepartmentForCourse(user.course);
+    if (!deptMap.has(dept)) {
+      deptMap.set(dept, { department: dept, students: 0, instructors: 0, totalUsers: 0, activeBorrows: 0 });
+    }
+    const d = deptMap.get(dept)!;
+    d.totalUsers++;
+    if (user.role === "student") d.students++;
+    if (user.role === "instructor") d.instructors++;
+  }
+
+  for (const borrow of borrows.filter(b => b.status === "borrowed" || b.status === "overdue")) {
+    const user = users.find(u => u.id === borrow.userId);
+    if (user) {
+      const dept = getDepartmentForCourse(user.course);
+      if (deptMap.has(dept)) {
+        deptMap.get(dept)!.activeBorrows++;
+      }
+    }
+  }
+
+  return res.json(Array.from(deptMap.values()));
+});
+
 // GET /monitoring/by-course
 router.get("/monitoring/by-course", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
   const students = await db.select().from(usersTable);
   const borrows = await db.select().from(borrowRecordsTable);
 
-  const courseMap = new Map<string, { course: string; year: string; section: string; campus: string; studentCount: number; activeBorrows: number }>();
+  const courseMap = new Map<string, { course: string; department: string; year: string; section: string; campus: string; studentCount: number; activeBorrows: number }>();
 
   for (const s of students.filter(u => u.role === "student" && u.course)) {
     const key = `${s.course}|${s.year}|${s.section}|${s.campus}`;
     if (!courseMap.has(key)) {
       courseMap.set(key, {
         course: s.course || "",
+        department: getDepartmentForCourse(s.course),
         year: s.year || "",
         section: s.section || "",
         campus: s.campus,
