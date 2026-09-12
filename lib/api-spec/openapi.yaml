@@ -116,6 +116,10 @@ paths:
           in: query
           schema:
             type: string
+        - name: department
+          in: query
+          schema:
+            type: string
         - name: role
           in: query
           schema:
@@ -767,6 +771,8 @@ components:
           type: string
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         role:
           type: string
           enum: [admin, instructor, student]
@@ -808,6 +814,8 @@ components:
           type: string
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         role:
           type: string
         photoUrl:
@@ -836,6 +844,8 @@ components:
           type: string
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         isApproved:
           type: boolean
         course:
@@ -863,6 +873,8 @@ components:
           type: string
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         coverUrl:
           type: ["string", "null"]
         fileUrl:
@@ -896,6 +908,8 @@ components:
           type: string
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         coverUrl:
           type: ["string", "null"]
         fileUrl:
@@ -924,6 +938,8 @@ components:
           type: string
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         coverUrl:
           type: ["string", "null"]
         fileUrl:
@@ -1028,6 +1044,8 @@ components:
       properties:
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         totalUsers:
           type: integer
         students:
@@ -1051,6 +1069,8 @@ components:
           type: integer
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         activeBorrows:
           type: integer
 
@@ -1121,6 +1141,8 @@ components:
           type: ["string", "null"]
         campus:
           type: string
+        department:
+          type: ["string", "null"]
         createdAt:
           type: string
 
