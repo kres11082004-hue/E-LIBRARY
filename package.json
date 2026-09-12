@@ -2,6 +2,7 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
+  "packageManager": "pnpm@10.2.0",
   "scripts": {
     "preinstall": "node ./scripts/preinstall.cjs",
     "dev": "pnpm --filter \"@workspace/api-server\" --filter \"@workspace/elibrary\" --parallel run dev",
