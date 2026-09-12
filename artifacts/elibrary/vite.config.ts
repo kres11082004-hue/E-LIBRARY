@@ -17,27 +17,9 @@ try {
   }
 }
 
-const rawPort = process.env.PORT || process.env.FRONTEND_PORT;
-
-if (!rawPort) {
-  throw new Error(
-    "PORT or FRONTEND_PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    "BASE_PATH environment variable is required but was not provided.",
-  );
-}
+const rawPort = process.env.PORT || process.env.FRONTEND_PORT || "5173";
+const port = Number(rawPort) || 5173;
+const basePath = process.env.BASE_PATH || "/";
 
 export default defineConfig({
   base: basePath,

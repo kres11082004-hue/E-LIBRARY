@@ -30,6 +30,8 @@ export interface RegisterInput {
   phone: string;
   address: string;
   campus: string;
+  /** @nullable */
+  department?: string | null;
   role: RegisterInputRole;
   photoUrl: string;
   /** @nullable */
@@ -51,6 +53,8 @@ export interface User {
   phone: string;
   address: string;
   campus: string;
+  /** @nullable */
+  department?: string | null;
   role: string;
   /** @nullable */
   photoUrl?: string | null;
@@ -76,6 +80,8 @@ export interface UserUpdate {
   phone?: string;
   address?: string;
   campus?: string;
+  /** @nullable */
+  department?: string | null;
   isApproved?: boolean;
   /** @nullable */
   course?: string | null;
@@ -94,6 +100,8 @@ export interface Book {
   content?: string | null;
   category: string;
   campus: string;
+  /** @nullable */
+  department?: string | null;
   /** @nullable */
   coverUrl?: string | null;
   /** @nullable */
@@ -117,6 +125,8 @@ export interface BookInput {
   category: string;
   campus: string;
   /** @nullable */
+  department?: string | null;
+  /** @nullable */
   coverUrl?: string | null;
   /** @nullable */
   fileUrl?: string | null;
@@ -136,6 +146,8 @@ export interface BookUpdate {
   content?: string | null;
   category?: string;
   campus?: string;
+  /** @nullable */
+  department?: string | null;
   /** @nullable */
   coverUrl?: string | null;
   /** @nullable */
@@ -215,6 +227,8 @@ export interface MonitoringStats {
 
 export interface CampusStat {
   campus: string;
+  /** @nullable */
+  department?: string | null;
   totalUsers: number;
   students: number;
   instructors: number;
@@ -227,6 +241,8 @@ export interface CourseStat {
   section: string;
   studentCount: number;
   campus: string;
+  /** @nullable */
+  department?: string | null;
   activeBorrows?: number;
 }
 
@@ -290,6 +306,8 @@ export interface ActivityItem {
   /** @nullable */
   bookTitle?: string | null;
   campus?: string;
+  /** @nullable */
+  department?: string | null;
   createdAt: string;
 }
 
@@ -361,6 +379,7 @@ export interface BorrowingReportUser {
 
 export type ListUsersParams = {
 campus?: string;
+department?: string;
 role?: string;
 course?: string;
 year?: string;
@@ -371,6 +390,7 @@ export type ListBooksParams = {
 search?: string;
 category?: string;
 campus?: string;
+department?: string;
 };
 
 export type ListBorrowRecordsParams = {

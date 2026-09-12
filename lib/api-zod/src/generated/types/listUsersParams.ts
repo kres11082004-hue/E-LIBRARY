@@ -8,6 +8,7 @@
 
 export type ListUsersParams = {
 campus?: string;
+department?: string;
 role?: string;
 course?: string;
 year?: string;

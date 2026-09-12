@@ -14,6 +14,8 @@ export interface RegisterInput {
   phone: string;
   address: string;
   campus: string;
+  /** @nullable */
+  department?: string | null;
   role: RegisterInputRole;
   photoUrl: string;
   /** @nullable */

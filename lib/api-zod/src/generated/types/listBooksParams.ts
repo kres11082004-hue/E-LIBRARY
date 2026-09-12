@@ -10,4 +10,5 @@ export type ListBooksParams = {
 search?: string;
 category?: string;
 campus?: string;
+department?: string;
 };

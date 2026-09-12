@@ -125,7 +125,7 @@ export default function HomePage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Books Available" value={books.length} icon={BookOpen} color="bg-primary/10 text-primary" href="/books" />
           <StatCard label="My Reading List" value={myList.length} icon={BookMarked} color="bg-indigo-500/10 text-indigo-600" href="/my-list" />
-          <StatCard label="My Active Borrows" value={borrows.filter(b => b.status === "pending" || b.status === "ready" || b.status === "fulfilled").length} icon={Library} color="bg-amber-500/10 text-amber-600" href="/borrowed" />
+          <StatCard label="My Active Borrows" value={borrows.filter(b => b.status === "borrowed" || b.status === "overdue").length} icon={Library} color="bg-amber-500/10 text-amber-600" href="/borrowed" />
           <StatCard label="New Arrivals" value={recentBooks.length} icon={Clock} color="bg-green-500/10 text-green-600" href="/books" />
         </div>
       )}

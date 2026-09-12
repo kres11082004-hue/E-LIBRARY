@@ -15,6 +15,8 @@ export interface BookUpdate {
   category?: string;
   campus?: string;
   /** @nullable */
+  department?: string | null;
+  /** @nullable */
   coverUrl?: string | null;
   /** @nullable */
   fileUrl?: string | null;

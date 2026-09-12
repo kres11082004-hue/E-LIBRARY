@@ -13,6 +13,8 @@ export interface User {
   phone: string;
   address: string;
   campus: string;
+  /** @nullable */
+  department?: string | null;
   role: string;
   /** @nullable */
   photoUrl?: string | null;

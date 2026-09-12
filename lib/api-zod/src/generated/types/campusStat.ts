@@ -8,6 +8,8 @@
 
 export interface CampusStat {
   campus: string;
+  /** @nullable */
+  department?: string | null;
   totalUsers: number;
   students: number;
   instructors: number;

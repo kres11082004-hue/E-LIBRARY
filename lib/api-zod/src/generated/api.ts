@@ -33,6 +33,7 @@ export const LoginResponse = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "role": zod.string(),
   "photoUrl": zod.string().nullish(),
   "studentNumber": zod.string().nullish(),
@@ -55,6 +56,7 @@ export const RegisterBody = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "role": zod.enum(['admin', 'instructor', 'student']),
   "photoUrl": zod.string(),
   "studentNumber": zod.string().nullish(),
@@ -75,6 +77,7 @@ export const GetMeResponse = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "role": zod.string(),
   "photoUrl": zod.string().nullish(),
   "studentNumber": zod.string().nullish(),
@@ -91,6 +94,7 @@ export const GetMeResponse = zod.object({
  */
 export const ListUsersQueryParams = zod.object({
   "campus": zod.coerce.string().optional(),
+  "department": zod.coerce.string().optional(),
   "role": zod.coerce.string().optional(),
   "course": zod.coerce.string().optional(),
   "year": zod.coerce.string().optional(),
@@ -104,6 +108,7 @@ export const ListUsersResponseItem = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "role": zod.string(),
   "photoUrl": zod.string().nullish(),
   "studentNumber": zod.string().nullish(),
@@ -130,6 +135,7 @@ export const GetUserResponse = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "role": zod.string(),
   "photoUrl": zod.string().nullish(),
   "studentNumber": zod.string().nullish(),
@@ -153,6 +159,7 @@ export const UpdateUserBody = zod.object({
   "phone": zod.string().optional(),
   "address": zod.string().optional(),
   "campus": zod.string().optional(),
+  "department": zod.string().nullish(),
   "isApproved": zod.boolean().optional(),
   "course": zod.string().nullish(),
   "year": zod.string().nullish(),
@@ -166,6 +173,7 @@ export const UpdateUserResponse = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "role": zod.string(),
   "photoUrl": zod.string().nullish(),
   "studentNumber": zod.string().nullish(),
@@ -191,7 +199,8 @@ export const DeleteUserParams = zod.object({
 export const ListBooksQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
   "category": zod.coerce.string().optional(),
-  "campus": zod.coerce.string().optional()
+  "campus": zod.coerce.string().optional(),
+  "department": zod.coerce.string().optional()
 })
 
 export const ListBooksResponseItem = zod.object({
@@ -202,6 +211,7 @@ export const ListBooksResponseItem = zod.object({
   "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "coverUrl": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "isbn": zod.string().nullish(),
@@ -224,6 +234,7 @@ export const CreateBookBody = zod.object({
   "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "coverUrl": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "isbn": zod.string().nullish(),
@@ -248,6 +259,7 @@ export const GetBookResponse = zod.object({
   "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "coverUrl": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "isbn": zod.string().nullish(),
@@ -273,6 +285,7 @@ export const UpdateBookBody = zod.object({
   "content": zod.string().nullish(),
   "category": zod.string().optional(),
   "campus": zod.string().optional(),
+  "department": zod.string().nullish(),
   "coverUrl": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "isbn": zod.string().nullish(),
@@ -289,6 +302,7 @@ export const UpdateBookResponse = zod.object({
   "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "coverUrl": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "isbn": zod.string().nullish(),
@@ -324,6 +338,7 @@ export const GetMyListResponseItem = zod.object({
   "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "coverUrl": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "isbn": zod.string().nullish(),
@@ -376,6 +391,7 @@ export const ListBorrowRecordsResponseItem = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "role": zod.string(),
   "photoUrl": zod.string().nullish(),
   "studentNumber": zod.string().nullish(),
@@ -393,6 +409,7 @@ export const ListBorrowRecordsResponseItem = zod.object({
   "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "coverUrl": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "isbn": zod.string().nullish(),
@@ -443,6 +460,7 @@ export const UpdateBorrowRecordResponse = zod.object({
   "phone": zod.string(),
   "address": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "role": zod.string(),
   "photoUrl": zod.string().nullish(),
   "studentNumber": zod.string().nullish(),
@@ -460,6 +478,7 @@ export const UpdateBorrowRecordResponse = zod.object({
   "content": zod.string().nullish(),
   "category": zod.string(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "coverUrl": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "isbn": zod.string().nullish(),
@@ -558,6 +577,7 @@ export const GetMonitoringStatsResponse = zod.object({
  */
 export const GetMonitoringByCampusResponseItem = zod.object({
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "totalUsers": zod.number(),
   "students": zod.number(),
   "instructors": zod.number(),
@@ -575,6 +595,7 @@ export const GetMonitoringByCourseResponseItem = zod.object({
   "section": zod.string(),
   "studentCount": zod.number(),
   "campus": zod.string(),
+  "department": zod.string().nullish(),
   "activeBorrows": zod.number().optional()
 })
 export const GetMonitoringByCourseResponse = zod.array(GetMonitoringByCourseResponseItem)
@@ -590,6 +611,7 @@ export const GetRecentActivityResponseItem = zod.object({
   "userName": zod.string().optional(),
   "bookTitle": zod.string().nullish(),
   "campus": zod.string().optional(),
+  "department": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const GetRecentActivityResponse = zod.array(GetRecentActivityResponseItem)

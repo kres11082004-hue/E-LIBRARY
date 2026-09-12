@@ -14,5 +14,7 @@ export interface ActivityItem {
   /** @nullable */
   bookTitle?: string | null;
   campus?: string;
+  /** @nullable */
+  department?: string | null;
   createdAt: string;
 }

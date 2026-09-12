@@ -11,6 +11,8 @@ export interface UserUpdate {
   phone?: string;
   address?: string;
   campus?: string;
+  /** @nullable */
+  department?: string | null;
   isApproved?: boolean;
   /** @nullable */
   course?: string | null;

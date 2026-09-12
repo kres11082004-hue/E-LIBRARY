@@ -12,5 +12,7 @@ export interface CourseStat {
   section: string;
   studentCount: number;
   campus: string;
+  /** @nullable */
+  department?: string | null;
   activeBorrows?: number;
 }
