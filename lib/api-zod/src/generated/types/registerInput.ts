@@ -5,7 +5,7 @@
  * E-Library System API
  * OpenAPI spec version: 0.1.0
  */
-import type { RegisterInputRole } from './registerInputRole';
+import type { RegisterInputRole } from './registerInputRole.js';
 
 export interface RegisterInput {
   fullname: string;
