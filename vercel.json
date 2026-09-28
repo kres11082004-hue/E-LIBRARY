@@ -1,4 +1,5 @@
 {
+  "name": "e-library",
   "framework": "vite",
   "buildCommand": "pnpm run build",
   "outputDirectory": "artifacts/elibrary/dist/public",
