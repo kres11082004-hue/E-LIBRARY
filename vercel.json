@@ -1,17 +1,22 @@
 {
   "name": "e-library",
-  "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/elibrary run build",
   "outputDirectory": "artifacts/elibrary/dist/public",
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api"
+      "source": "/api/:path*",
+      "destination": "/api/index.ts"
     },
     {
-      "source": "/uploads/(.*)",
-      "destination": "/api"
+      "source": "/uploads/:path*",
+      "destination": "/api/index.ts"
     },
     {
       "source": "/((?!api|uploads).*)",
