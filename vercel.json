@@ -1,6 +1,7 @@
 {
   "name": "e-library",
   "framework": "vite",
+  "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/elibrary run build",
   "outputDirectory": "artifacts/elibrary/dist/public",
   "rewrites": [

@@ -119,6 +119,35 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom"],
+          "vendor-router": ["wouter"],
+          "vendor-query": ["@tanstack/react-query"],
+          "vendor-ui-radix": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-toast",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-avatar",
+            "@radix-ui/react-checkbox",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-accordion",
+          ],
+          "vendor-animation": ["framer-motion"],
+          "vendor-charts": ["recharts"],
+          "vendor-forms": ["react-hook-form", "@hookform/resolvers", "zod"],
+          "vendor-pdf": ["jspdf", "jspdf-autotable"],
+          "vendor-epub": ["epubjs", "react-reader"],
+          "vendor-xlsx": ["xlsx"],
+          "vendor-docx": ["docx-preview"],
+        },
+      },
+    },
   },
   server: {
     port,
