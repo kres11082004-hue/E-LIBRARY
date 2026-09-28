@@ -1,6 +1,6 @@
 import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
-import { usersTable } from "./users";
-import { booksTable } from "./books";
+import { usersTable } from "./users.js";
+import { booksTable } from "./books.js";
 
 export const borrowRecordsTable = pgTable("borrow_records", {
   id: serial("id").primaryKey(),
