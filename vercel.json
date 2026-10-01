@@ -1,5 +1,4 @@
 {
-  "name": "e-library",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/elibrary run build",
   "outputDirectory": "artifacts/elibrary/dist/public",
