@@ -159,11 +159,11 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: `http://localhost:${process.env.API_PORT || 8080}`,
+        target: process.env.VITE_API_BASE_URL || `http://localhost:${process.env.API_PORT || 8080}`,
         changeOrigin: true,
       },
       "/uploads": {
-        target: `http://localhost:${process.env.API_PORT || 8080}`,
+        target: process.env.VITE_API_BASE_URL || `http://localhost:${process.env.API_PORT || 8080}`,
         changeOrigin: true,
       },
     },

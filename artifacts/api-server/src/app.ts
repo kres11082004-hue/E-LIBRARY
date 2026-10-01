@@ -33,11 +33,26 @@ if (typeof pinoHttpFn === "function") {
     }),
   );
 }
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:19545",
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.) or matching origins
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all in production for now; tighten later
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 app.use("/api", router);
-app.use(router);
 
 export default app;
