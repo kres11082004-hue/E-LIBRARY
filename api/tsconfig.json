@@ -1,11 +1,10 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "module": "esnext",
     "moduleResolution": "bundler",
     "target": "es2022",
     "outDir": "../../.vercel/output/functions",
-    "rootDir": ".",
     "types": ["node"]
   },
   "include": ["./**/*.ts"]

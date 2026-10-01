@@ -12,9 +12,15 @@ if (!databaseUrl) {
   );
 }
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const pool = new Pool({
   connectionString:
     databaseUrl || "postgres://postgres:postgres@localhost:5432/postgres",
+  ssl:
+    databaseUrl && (databaseUrl.includes("sslmode=require") || isProduction)
+      ? { rejectUnauthorized: false }
+      : undefined,
 });
 export const db = drizzle(pool, { schema });
 
