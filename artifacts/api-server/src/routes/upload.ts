@@ -6,11 +6,16 @@ import { requireAuth, requireRole } from "../middlewares/auth.js";
 const router = Router();
 
 // Ensure upload directory exists
-const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+const isVercel = process.env.VERCEL === "1" || Boolean(process.env.NOW_BUILDER);
+const UPLOADS_DIR = isVercel ? "/tmp/uploads" : path.resolve(process.cwd(), "uploads");
 const COVERS_DIR = path.join(UPLOADS_DIR, "covers");
 
-if (!fs.existsSync(COVERS_DIR)) {
-  fs.mkdirSync(COVERS_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(COVERS_DIR)) {
+    fs.mkdirSync(COVERS_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn("[Warning] Could not create covers directory:", err);
 }
 
 // POST /upload/cover — Upload image as base64 string or binary
@@ -81,8 +86,12 @@ router.post("/upload/file", requireAuth, requireRole("admin", "librarian"), asyn
     // We can reuse COVERS_DIR or create a separate files directory.
     // Let's create a separate one.
     const FILES_DIR = path.join(UPLOADS_DIR, "files");
-    if (!fs.existsSync(FILES_DIR)) {
-      fs.mkdirSync(FILES_DIR, { recursive: true });
+    try {
+      if (!fs.existsSync(FILES_DIR)) {
+        fs.mkdirSync(FILES_DIR, { recursive: true });
+      }
+    } catch (dirErr) {
+      console.warn("[Warning] Could not create files directory:", dirErr);
     }
     
     const filePath = path.join(FILES_DIR, filename);

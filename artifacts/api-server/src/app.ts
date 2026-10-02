@@ -9,8 +9,12 @@ const pinoHttpFn = typeof pinoHttp === "function" ? pinoHttp : (pinoHttp as any)
 
 const app: Express = express();
 
-const uploadsPath = path.resolve(process.cwd(), "uploads");
-app.use("/uploads", express.static(uploadsPath));
+const isVercel = process.env.VERCEL === "1" || Boolean(process.env.NOW_BUILDER);
+const uploadsPath = isVercel ? "/tmp/uploads" : path.resolve(process.cwd(), "uploads");
+// Only serve static uploads when NOT running in a serverless environment
+if (!isVercel) {
+  app.use("/uploads", express.static(uploadsPath));
+}
 
 if (typeof pinoHttpFn === "function") {
   app.use(

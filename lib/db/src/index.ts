@@ -14,11 +14,25 @@ if (!databaseUrl) {
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// Strip parameters unsupported by the pg Node.js driver (e.g. channel_binding)
+function cleanDbUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete("channel_binding");
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+const cleanedUrl = databaseUrl ? cleanDbUrl(databaseUrl) : undefined;
+const isNeon = cleanedUrl?.includes(".neon.tech") || cleanedUrl?.includes("neon.tech");
+
 export const pool = new Pool({
   connectionString:
-    databaseUrl || "postgres://postgres:postgres@localhost:5432/postgres",
+    cleanedUrl || "postgres://postgres:postgres@localhost:5432/postgres",
   ssl:
-    databaseUrl && (databaseUrl.includes("sslmode=require") || isProduction)
+    (cleanedUrl && (cleanedUrl.includes("sslmode=require") || isProduction || isNeon))
       ? { rejectUnauthorized: false }
       : undefined,
 });
