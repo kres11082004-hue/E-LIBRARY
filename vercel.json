@@ -2,11 +2,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/elibrary run build",
   "outputDirectory": "artifacts/elibrary/dist/public",
-  "functions": {
-    "api/index.ts": {
-      "maxDuration": 30
-    }
-  },
+
   "rewrites": [
     {
       "source": "/api/:path*",
