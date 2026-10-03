@@ -102,9 +102,8 @@ router.post("/upload/file", requireAuth, requireRole("admin", "librarian"), asyn
     let extractedText: string | null = null;
     if (ext === "pdf") {
       try {
-        // pdf-parse is externalized — load via the CJS require injected by the build banner
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (globalThis as any).require("pdf-parse");
+        const pdfParseModule: any = await import("pdf-parse");
+        const pdfParse = pdfParseModule.default || pdfParseModule;
         const data = await pdfParse(buffer);
         extractedText = data.text;
       } catch (parseErr) {
@@ -112,9 +111,8 @@ router.post("/upload/file", requireAuth, requireRole("admin", "librarian"), asyn
       }
     } else if (ext === "docx" || ext === "doc") {
       try {
-        // mammoth is externalized — load via the CJS require injected by the build banner
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mammoth = (globalThis as any).require("mammoth");
+        const mammothModule: any = await import("mammoth");
+        const mammoth = mammothModule.default || mammothModule;
         const result = await mammoth.convertToHtml({ buffer });
         extractedText = result.value;
       } catch (parseErr) {

@@ -7,12 +7,10 @@ import router from "./routes/index.js";
 
 const app: Express = express();
 
-app.use(pinoHttp({ logger }));
-
 const isVercel = process.env.VERCEL === "1" || Boolean(process.env.NOW_BUILDER);
 
-// Only serve static uploads when NOT running in a serverless environment
 if (!isVercel) {
+  app.use(pinoHttp({ logger }));
   const uploadsPath = path.resolve(process.cwd(), "uploads");
   app.use("/uploads", express.static(uploadsPath));
 }
@@ -37,5 +35,6 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use("/api", router);
+app.use(router);
 
 export default app;
