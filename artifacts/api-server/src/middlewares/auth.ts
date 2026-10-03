@@ -1,22 +1,8 @@
 import { type Request, type Response, type NextFunction } from "express";
 import crypto from "crypto";
-import type { Logger } from "pino";
+import type { AuthUser } from "../types/express.js";
 
-export interface AuthUser {
-  id: number;
-  email: string;
-  role: string;
-  campus: string;
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthUser;
-      log: Logger;
-    }
-  }
-}
+export type { AuthUser };
 
 // Simple token store: token -> user (in-memory, sufficient for this use case)
 const tokenStore = new Map<string, AuthUser>();
