@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, authorizedUsersTable } from "@workspace/db";
-import { eq, and, ilike } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { requireAuth, generateToken, revokeToken, getUserByToken } from "../middlewares/auth.js";
 import { activityLogTable } from "@workspace/db";
@@ -64,38 +64,20 @@ router.post("/auth/register", async (req, res) => {
       return res.status(400).json({ error: "Email already registered" });
     }
 
+    const parsedAuthId = authorizedUserId ? Number(authorizedUserId) : null;
+
     // For students and instructors, verify against authorized users list
     if (role === "student" || role === "instructor") {
-      let authRecord: typeof authorizedUsersTable.$inferSelect | undefined;
-      if (authorizedUserId) {
-        const [found] = await db.select().from(authorizedUsersTable).where(eq(authorizedUsersTable.id, authorizedUserId));
-        authRecord = found;
+      if (!parsedAuthId) {
+        return res.status(400).json({ error: "Identity verification is required. Please verify your identity first." });
       }
-      
-      // Fallback lookup if authorizedUserId wasn't supplied directly
-      if (!authRecord && studentNumber) {
-        const rows = await db
-          .select()
-          .from(authorizedUsersTable)
-          .where(
-            and(
-              ilike(authorizedUsersTable.schoolId, studentNumber.trim()),
-              ilike(authorizedUsersTable.role, role.toLowerCase().trim())
-            )
-          );
-        if (rows.length > 0) {
-          authRecord = rows[0];
-        }
-      }
-
+      const [authRecord] = await db.select().from(authorizedUsersTable).where(eq(authorizedUsersTable.id, parsedAuthId));
       if (!authRecord) {
-        return res.status(400).json({ error: "Identity verification is required. Please complete step 1 to verify your identity." });
+        return res.status(400).json({ error: "Invalid authorized user record." });
       }
       if (authRecord.linkedUserId) {
-        return res.status(400).json({ error: "An account has already been registered for this School/Employee ID." });
+        return res.status(400).json({ error: "An account has already been created for this School/Employee ID." });
       }
-      // Ensure we store the authorized user id for linking
-      req.body.authorizedUserId = authRecord.id;
     }
 
     const passwordHash = hashPassword(password);
@@ -117,25 +99,32 @@ router.post("/auth/register", async (req, res) => {
     }).returning();
 
     // Link the authorized user record
-    const targetAuthId = req.body.authorizedUserId;
-    if ((role === "student" || role === "instructor") && targetAuthId) {
-      await db.update(authorizedUsersTable).set({ linkedUserId: user.id }).where(eq(authorizedUsersTable.id, targetAuthId));
+    if ((role === "student" || role === "instructor") && parsedAuthId) {
+      try {
+        await db.update(authorizedUsersTable).set({ linkedUserId: user.id }).where(eq(authorizedUsersTable.id, parsedAuthId));
+      } catch (linkErr) {
+        console.error("Failed to link authorized user record:", linkErr);
+      }
     }
 
-    // Log activity
-    await db.insert(activityLogTable).values({
-      type: "register",
-      description: `${fullname} registered as ${role}`,
-      userName: fullname,
-      campus: campus,
-    });
+    // Log activity (wrapped safely)
+    try {
+      await db.insert(activityLogTable).values({
+        type: "register",
+        description: `${fullname} registered as ${role}`,
+        userName: fullname,
+        campus: campus,
+      });
+    } catch (logErr) {
+      console.error("Failed to insert activity log:", logErr);
+    }
 
     const token = generateToken({ id: user.id, email: user.email, role: user.role, campus: user.campus });
     const { passwordHash: _, ...safeUser } = user;
     return res.status(201).json({ token, user: safeUser });
   } catch (err: any) {
     console.error("Register error:", err);
-    return res.status(500).json({ error: err?.message || "Internal server error during registration." });
+    return res.status(500).json({ error: err?.message || "Internal server error during registration" });
   }
 });
 

@@ -1,9 +1,13 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import path from "path";
+import pinoHttp from "pino-http";
+import { logger } from "./lib/logger.js";
 import router from "./routes/index.js";
 
 const app: Express = express();
+
+app.use(pinoHttp({ logger }));
 
 const isVercel = process.env.VERCEL === "1" || Boolean(process.env.NOW_BUILDER);
 

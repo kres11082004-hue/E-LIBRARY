@@ -14,11 +14,12 @@ if (!databaseUrl) {
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Strip parameters unsupported by the pg Node.js driver (e.g. channel_binding)
+// Strip parameters unsupported by the pg Node.js driver (e.g. channel_binding, sslmode)
 function cleanDbUrl(url: string): string {
   try {
     const parsed = new URL(url);
     parsed.searchParams.delete("channel_binding");
+    parsed.searchParams.delete("sslmode");
     return parsed.toString();
   } catch {
     return url;
@@ -26,15 +27,17 @@ function cleanDbUrl(url: string): string {
 }
 
 const cleanedUrl = databaseUrl ? cleanDbUrl(databaseUrl) : undefined;
-const isNeon = cleanedUrl?.includes(".neon.tech") || cleanedUrl?.includes("neon.tech");
+const isNeon = databaseUrl?.includes(".neon.tech") || databaseUrl?.includes("neon.tech");
 
 export const pool = new Pool({
   connectionString:
     cleanedUrl || "postgres://postgres:postgres@localhost:5432/postgres",
-  ssl:
-    (cleanedUrl && (cleanedUrl.includes("sslmode=require") || isProduction || isNeon))
-      ? { rejectUnauthorized: false }
-      : undefined,
+  ssl: (databaseUrl && (databaseUrl.includes("sslmode=require") || isProduction || isNeon))
+    ? { rejectUnauthorized: false }
+    : undefined,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 export const db = drizzle(pool, { schema });
 

@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
 import crypto from "crypto";
+import type { Logger } from "pino";
 
 export interface AuthUser {
   id: number;
@@ -12,7 +13,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: AuthUser;
-      log?: any;
+      log: Logger;
     }
   }
 }

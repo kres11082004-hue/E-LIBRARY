@@ -1,0 +1,11 @@
+node_modules
+.git
+.vscode
+.agents
+dist
+*/dist
+artifacts/*/dist
+lib/*/dist
+school_books
+uploads
+.env.local.bak
