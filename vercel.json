@@ -1,6 +1,6 @@
 {
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/elibrary run build",
+  "buildCommand": "pnpm run build",
   "outputDirectory": "artifacts/elibrary/dist/public",
 
   "rewrites": [

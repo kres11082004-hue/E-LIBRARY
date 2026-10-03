@@ -140,6 +140,38 @@ router.post("/authorized-users/import", requireAuth, async (req, res) => {
   return res.json({ success: true, importedCount, skippedCount });
 });
 
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function nameMatches(recordName: string, inputName: string): boolean {
+  const normRecord = normalizeName(recordName);
+  const normInput = normalizeName(inputName);
+
+  if (normRecord === normInput) return true;
+
+  // Split into token words
+  const recordTokens = new Set(normRecord.split(" ").filter(t => t.length > 0));
+  const inputTokens = normInput.split(" ").filter(t => t.length > 0);
+
+  // Filter out single character initials for token matching check
+  const significantInputTokens = inputTokens.filter(t => t.length > 1);
+  if (significantInputTokens.length === 0) return false;
+
+  const matchingTokens = significantInputTokens.filter(t => recordTokens.has(t));
+
+  // Match if at least 2 significant tokens match, or all significant tokens match if only 1 exists
+  if (matchingTokens.length >= Math.min(2, significantInputTokens.length)) {
+    return true;
+  }
+
+  return false;
+}
+
 // POST /auth/verify-identity — public, used during registration
 router.post("/auth/verify-identity", async (req, res) => {
   const { fullName, schoolId, role } = req.body;
@@ -163,18 +195,22 @@ router.post("/auth/verify-identity", async (req, res) => {
     );
 
   if (rows.length === 0) {
-    return res.status(404).json({ error: "No matching record found. Please contact your school's librarian to be added to the authorized list." });
+    return res.status(404).json({
+      error: `School/Employee ID '${trimmedSchoolId}' is not found in the school records list for ${trimmedRole}s. Please check your ID or contact your librarian to be added.`
+    });
   }
 
   const record = rows[0];
 
-  // Case-insensitive name comparison
-  if (record.fullName.toLowerCase().trim() !== trimmedFullName.toLowerCase()) {
-    return res.status(400).json({ error: "The name you entered does not match the record for this School/Employee ID." });
+  // Flexible name comparison
+  if (!nameMatches(record.fullName, trimmedFullName)) {
+    return res.status(400).json({
+      error: `The name '${trimmedFullName}' does not match the school record ('${record.fullName}') for ID '${trimmedSchoolId}'.`
+    });
   }
 
   if (record.linkedUserId) {
-    return res.status(400).json({ error: "An account has already been created for this School/Employee ID." });
+    return res.status(400).json({ error: "An account has already been registered for this School/Employee ID." });
   }
 
   return res.json({ valid: true, authorizedUserId: record.id, fullName: record.fullName });

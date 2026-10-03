@@ -1,42 +1,18 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import pinoHttp from "pino-http";
-import router from "./routes/index.js";
-import { logger } from "./lib/logger.js";
 import path from "path";
-
-const pinoHttpFn = typeof pinoHttp === "function" ? pinoHttp : (pinoHttp as any).default || pinoHttp;
+import router from "./routes/index.js";
 
 const app: Express = express();
 
 const isVercel = process.env.VERCEL === "1" || Boolean(process.env.NOW_BUILDER);
-const uploadsPath = isVercel ? "/tmp/uploads" : path.resolve(process.cwd(), "uploads");
+
 // Only serve static uploads when NOT running in a serverless environment
 if (!isVercel) {
+  const uploadsPath = path.resolve(process.cwd(), "uploads");
   app.use("/uploads", express.static(uploadsPath));
 }
 
-if (typeof pinoHttpFn === "function") {
-  app.use(
-    pinoHttpFn({
-      logger,
-      serializers: {
-        req(req: any) {
-          return {
-            id: req.id,
-            method: req.method,
-            url: req.url?.split("?")[0],
-          };
-        },
-        res(res: any) {
-          return {
-            statusCode: res.statusCode,
-          };
-        },
-      },
-    }),
-  );
-}
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:19545",
@@ -45,7 +21,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.) or matching origins
     if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
       callback(null, true);
     } else {
@@ -54,8 +29,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use("/api", router);
 

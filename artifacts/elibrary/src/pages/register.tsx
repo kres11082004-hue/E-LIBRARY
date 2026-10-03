@@ -93,7 +93,7 @@ export default function RegisterPage() {
           setStep(2);
         }
       } catch (err: any) {
-        const msg = err?.data?.error || err?.response?.data?.error || "Identity verification failed.";
+        const msg = err?.data?.error || err?.response?.data?.error || err?.message || "Identity verification failed.";
         toast({ title: "Verification Failed", description: msg, variant: "destructive" });
         return;
       }
@@ -135,7 +135,7 @@ export default function RegisterPage() {
         err?.response?.data?.error ||
         err?.message ||
         "Registration failed. Please check all fields and try again.";
-      toast({ title: msg, variant: "destructive" });
+      toast({ title: "Registration Failed", description: msg, variant: "destructive" });
     }
   };
 

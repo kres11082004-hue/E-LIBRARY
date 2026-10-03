@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, authorizedUsersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and, ilike } from "drizzle-orm";
 import crypto from "crypto";
 import { requireAuth, generateToken, revokeToken, getUserByToken } from "../middlewares/auth.js";
 import { activityLogTable } from "@workspace/db";
@@ -66,16 +66,36 @@ router.post("/auth/register", async (req, res) => {
 
     // For students and instructors, verify against authorized users list
     if (role === "student" || role === "instructor") {
-      if (!authorizedUserId) {
-        return res.status(400).json({ error: "Identity verification is required. Please verify your identity first." });
+      let authRecord: typeof authorizedUsersTable.$inferSelect | undefined;
+      if (authorizedUserId) {
+        const [found] = await db.select().from(authorizedUsersTable).where(eq(authorizedUsersTable.id, authorizedUserId));
+        authRecord = found;
       }
-      const [authRecord] = await db.select().from(authorizedUsersTable).where(eq(authorizedUsersTable.id, authorizedUserId));
+      
+      // Fallback lookup if authorizedUserId wasn't supplied directly
+      if (!authRecord && studentNumber) {
+        const rows = await db
+          .select()
+          .from(authorizedUsersTable)
+          .where(
+            and(
+              ilike(authorizedUsersTable.schoolId, studentNumber.trim()),
+              ilike(authorizedUsersTable.role, role.toLowerCase().trim())
+            )
+          );
+        if (rows.length > 0) {
+          authRecord = rows[0];
+        }
+      }
+
       if (!authRecord) {
-        return res.status(400).json({ error: "Invalid authorized user record." });
+        return res.status(400).json({ error: "Identity verification is required. Please complete step 1 to verify your identity." });
       }
       if (authRecord.linkedUserId) {
-        return res.status(400).json({ error: "An account has already been created for this School/Employee ID." });
+        return res.status(400).json({ error: "An account has already been registered for this School/Employee ID." });
       }
+      // Ensure we store the authorized user id for linking
+      req.body.authorizedUserId = authRecord.id;
     }
 
     const passwordHash = hashPassword(password);
@@ -97,8 +117,9 @@ router.post("/auth/register", async (req, res) => {
     }).returning();
 
     // Link the authorized user record
-    if ((role === "student" || role === "instructor") && authorizedUserId) {
-      await db.update(authorizedUsersTable).set({ linkedUserId: user.id }).where(eq(authorizedUsersTable.id, authorizedUserId));
+    const targetAuthId = req.body.authorizedUserId;
+    if ((role === "student" || role === "instructor") && targetAuthId) {
+      await db.update(authorizedUsersTable).set({ linkedUserId: user.id }).where(eq(authorizedUsersTable.id, targetAuthId));
     }
 
     // Log activity
@@ -114,7 +135,7 @@ router.post("/auth/register", async (req, res) => {
     return res.status(201).json({ token, user: safeUser });
   } catch (err: any) {
     console.error("Register error:", err);
-    return res.status(500).json({ error: "Internal server error during registration: " + err?.message });
+    return res.status(500).json({ error: err?.message || "Internal server error during registration." });
   }
 });
 
