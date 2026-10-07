@@ -142,23 +142,19 @@ router.post("/authorized-users/import", requireAuth, async (req, res) => {
 
 // POST /auth/verify-identity — public, used during registration
 router.post("/auth/verify-identity", async (req, res) => {
-  const { schoolId, role } = req.body;
-  if (!schoolId || !role) {
-    return res.status(400).json({ error: "School/Employee ID and role are required" });
+  const { schoolId } = req.body;
+  if (!schoolId) {
+    return res.status(400).json({ error: "School/Employee ID is required" });
   }
 
   const trimmedSchoolId = schoolId.trim();
-  const trimmedRole = role.toLowerCase().trim();
 
-  // Case-insensitive schoolId + role match in authorized master list
+  // Case-insensitive match by School ID ONLY in authorized master list
   const rows = await db
     .select()
     .from(authorizedUsersTable)
     .where(
-      and(
-        ilike(authorizedUsersTable.schoolId, trimmedSchoolId),
-        ilike(authorizedUsersTable.role, trimmedRole)
-      )
+      ilike(authorizedUsersTable.schoolId, trimmedSchoolId)
     );
 
   if (rows.length === 0) {

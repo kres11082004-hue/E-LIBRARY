@@ -5,7 +5,7 @@
  * E-Library System API
  * OpenAPI spec version: 0.1.0
  */
-import type { BorrowUpdateStatus } from './borrowUpdateStatus.js';
+import type { BorrowUpdateStatus } from './borrowUpdateStatus';
 
 export interface BorrowUpdate {
   status?: BorrowUpdateStatus;

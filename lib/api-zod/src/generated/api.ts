@@ -703,9 +703,9 @@ export const DeleteAuthorizedUserParams = zod.object({
  * @summary Verify student/instructor identity against authorized list
  */
 export const VerifyIdentityBody = zod.object({
-  "fullName": zod.string(),
+  "fullName": zod.string().nullish(),
   "schoolId": zod.string(),
-  "role": zod.enum(['student', 'instructor'])
+  "role": zod.string().nullish()
 })
 
 export const VerifyIdentityResponse = zod.object({

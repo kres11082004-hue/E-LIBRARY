@@ -5,7 +5,7 @@
  * E-Library System API
  * OpenAPI spec version: 0.1.0
  */
-import type { ReservationUpdateStatus } from './reservationUpdateStatus.js';
+import type { ReservationUpdateStatus } from './reservationUpdateStatus';
 
 export interface ReservationUpdate {
   status: ReservationUpdateStatus;

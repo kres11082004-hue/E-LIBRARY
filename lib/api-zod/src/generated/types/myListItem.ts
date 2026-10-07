@@ -5,7 +5,7 @@
  * E-Library System API
  * OpenAPI spec version: 0.1.0
  */
-import type { Book } from './book.js';
+import type { Book } from './book';
 
 export interface MyListItem {
   id: number;

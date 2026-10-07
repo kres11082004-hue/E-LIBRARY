@@ -1185,15 +1185,14 @@ components:
 
     VerifyIdentityInput:
       type: object
-      required: [schoolId, role]
+      required: [schoolId]
       properties:
         fullName:
           type: ["string", "null"]
         schoolId:
           type: string
         role:
-          type: string
-          enum: [student, instructor]
+          type: ["string", "null"]
 
     BorrowingReportHistoryItem:
       type: object

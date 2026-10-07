@@ -82,18 +82,16 @@ export default function RegisterPage() {
       try {
         const res = await verifyMutation.mutateAsync({
           data: {
-            fullName: form.fullname,
             schoolId: form.studentNumber,
-            role: form.role as "student" | "instructor"
           }
         });
         if (res.valid) {
           setAuthorizedUserId(res.authorizedUserId);
-          toast({ title: "Identity Verified", description: `Welcome, ${res.fullName}` });
+          toast({ title: "School ID Verified", description: `ID Matched Master List: Welcome, ${res.fullName || form.fullname}` });
           setStep(2);
         }
       } catch (err: any) {
-        const msg = err?.data?.error || err?.response?.data?.error || "Identity verification failed.";
+        const msg = err?.data?.error || err?.response?.data?.error || "School ID verification failed.";
         toast({ title: "Verification Failed", description: msg, variant: "destructive" });
         return;
       }

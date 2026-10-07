@@ -339,18 +339,12 @@ export interface AuthorizedUserInput {
   course?: string | null;
 }
 
-export type VerifyIdentityInputRole = typeof VerifyIdentityInputRole[keyof typeof VerifyIdentityInputRole];
-
-
-export const VerifyIdentityInputRole = {
-  student: 'student',
-  instructor: 'instructor',
-} as const;
-
 export interface VerifyIdentityInput {
-  fullName: string;
+  /** @nullable */
+  fullName?: string | null;
   schoolId: string;
-  role: VerifyIdentityInputRole;
+  /** @nullable */
+  role?: string | null;
 }
 
 export interface BorrowingReportHistoryItem {
