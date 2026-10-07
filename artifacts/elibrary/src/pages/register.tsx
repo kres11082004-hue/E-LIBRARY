@@ -183,7 +183,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <Label>Full Name</Label>
                 <Input value={form.fullname} onChange={set("fullname")} placeholder="Lastname, First Name M.I" required />
-                <p className="text-xs text-muted-foreground">Must exactly match school records.</p>
+                <p className="text-xs text-muted-foreground">Enter your full name as it appears on your school ID.</p>
               </div>
               {(isStudent || isInstructor) && (
                 <div className="space-y-2">

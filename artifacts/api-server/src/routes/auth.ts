@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, authorizedUsersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, ilike } from "drizzle-orm";
 import crypto from "crypto";
 import { requireAuth, generateToken, revokeToken, getUserByToken } from "../middlewares/auth.js";
 import { activityLogTable } from "@workspace/db";
@@ -64,17 +64,26 @@ router.post("/auth/register", async (req, res) => {
       return res.status(400).json({ error: "Email already registered" });
     }
 
-    const parsedAuthId = authorizedUserId ? Number(authorizedUserId) : null;
+    let parsedAuthId = authorizedUserId ? Number(authorizedUserId) : null;
 
-    // For students and instructors, verify against authorized users list
+    // For students and instructors, verify against authorized users list by ID number
     if (role === "student" || role === "instructor") {
-      if (!parsedAuthId) {
-        return res.status(400).json({ error: "Identity verification is required. Please verify your identity first." });
+      let authRecord;
+      if (parsedAuthId) {
+        [authRecord] = await db.select().from(authorizedUsersTable).where(eq(authorizedUsersTable.id, parsedAuthId));
+      } else if (studentNumber) {
+        const trimmedId = (studentNumber as string).trim();
+        const rows = await db.select().from(authorizedUsersTable).where(ilike(authorizedUsersTable.schoolId, trimmedId));
+        if (rows.length > 0) {
+          authRecord = rows[0];
+          parsedAuthId = authRecord.id;
+        }
       }
-      const [authRecord] = await db.select().from(authorizedUsersTable).where(eq(authorizedUsersTable.id, parsedAuthId));
+
       if (!authRecord) {
-        return res.status(400).json({ error: "Invalid authorized user record." });
+        return res.status(400).json({ error: "School/Employee ID was not found in the master list. Please contact your school librarian." });
       }
+
       if (authRecord.linkedUserId) {
         return res.status(400).json({ error: "An account has already been created for this School/Employee ID." });
       }

@@ -1185,10 +1185,10 @@ components:
 
     VerifyIdentityInput:
       type: object
-      required: [fullName, schoolId, role]
+      required: [schoolId, role]
       properties:
         fullName:
-          type: string
+          type: ["string", "null"]
         schoolId:
           type: string
         role:
