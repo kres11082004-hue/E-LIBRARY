@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useUpdateUser, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Phone, MapPin, Building, BookOpen, Hash, GraduationCap } from "lucide-react";
+import { User, Mail, Phone, MapPin, Building, BookOpen, Hash, GraduationCap, Camera, Lock, CheckCircle, Loader2 } from "lucide-react";
 import { BackButton } from "@/components/back-button";
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
@@ -25,7 +25,22 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 export default function ProfilePage() {
   const { user, login, token } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ fullname: user?.fullname || "", phone: user?.phone || "", address: user?.address || "" });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const [form, setForm] = useState({
+    fullname: user?.fullname || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
+    photoUrl: user?.photoUrl || "",
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const updateMutation = useUpdateUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -35,16 +50,98 @@ export default function ProfilePage() {
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }));
 
-  const handleSave = async (e: React.FormEvent) => {
+  // Handle Photo Upload
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Photo too large", description: "Please select an image under 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingPhoto(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      try {
+        const res = await fetch("/api/upload/avatar", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ imageBase64: base64, filename: file.name }),
+        });
+
+        if (!res.ok) throw new Error("Upload failed");
+        const data = await res.json();
+        const newPhotoUrl = data.photoUrl || base64;
+
+        // Auto update user with new photo
+        const updated = await updateMutation.mutateAsync({
+          id: user.id,
+          data: { photoUrl: newPhotoUrl },
+        });
+
+        login(token!, updated);
+        setForm(f => ({ ...f, photoUrl: newPhotoUrl }));
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        toast({ title: "Profile photo updated!" });
+      } catch (err: any) {
+        console.error("Photo upload error:", err);
+        toast({ title: "Failed to upload photo", description: err?.message, variant: "destructive" });
+      } finally {
+        setUploadingPhoto(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const updated = await updateMutation.mutateAsync({ id: user.id, data: form });
+      const updated = await updateMutation.mutateAsync({
+        id: user.id,
+        data: {
+          fullname: form.fullname,
+          phone: form.phone,
+          address: form.address,
+          photoUrl: form.photoUrl || undefined,
+        },
+      });
+
       login(token!, updated);
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       toast({ title: "Profile updated successfully" });
       setEditing(false);
     } catch {
       toast({ title: "Failed to update profile", variant: "destructive" });
+    }
+  };
+
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.newPassword.length < 6) {
+      toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({ title: "Passwords do not match", description: "Please ensure both password fields match.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        id: user.id,
+        data: { password: passwordForm.newPassword } as any,
+      });
+
+      toast({ title: "Password changed successfully" });
+      setPasswordForm({ newPassword: "", confirmPassword: "" });
+      setChangingPassword(false);
+    } catch {
+      toast({ title: "Failed to change password", variant: "destructive" });
     }
   };
 
@@ -60,37 +157,83 @@ export default function ProfilePage() {
       <BackButton />
       <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
 
-      {/* Avatar + Name */}
-      <div className="bg-card border rounded-xl p-6 flex items-center gap-5">
-        {user.photoUrl ? (
-          <div className="w-16 h-16 rounded-full border overflow-hidden shrink-0">
-            <img src={user.photoUrl} alt={user.fullname} className="w-full h-full object-cover" />
+      {/* Hidden File Input for Avatar */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handlePhotoSelect}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {/* Avatar + Name Section */}
+      <div className="bg-card border rounded-xl p-6 flex flex-col sm:flex-row items-center gap-5 relative">
+        <div className="relative group shrink-0">
+          <div className="w-20 h-20 rounded-full border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center">
+            {form.photoUrl || user.photoUrl ? (
+              <img src={form.photoUrl || user.photoUrl!} alt={user.fullname} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold">
+                {user.fullname.charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold shrink-0">
-            {user.fullname.charAt(0).toUpperCase()}
-          </div>
-        )}
-        <div>
-          <h2 className="text-lg font-bold text-foreground">{user.fullname}</h2>
-          <p className="text-sm text-muted-foreground">{roleLabel[user.role] || user.role}</p>
-          <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium ${user.isApproved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-            {user.isApproved ? "Approved" : "Pending Approval"}
-          </span>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            className="absolute bottom-0 right-0 p-1.5 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-colors"
+            title="Change Profile Photo"
+          >
+            {uploadingPhoto ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Camera className="w-4 h-4" />
+            )}
+          </button>
         </div>
+
+        <div className="text-center sm:text-left flex-1">
+          <h2 className="text-xl font-bold text-foreground">{user.fullname}</h2>
+          <p className="text-sm text-muted-foreground">{roleLabel[user.role] || user.role}</p>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
+            <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium ${user.isApproved ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"}`}>
+              <CheckCircle className="w-3 h-3" />
+              {user.isApproved ? "Approved Account" : "Pending Approval"}
+            </span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+              {user.campus}
+            </span>
+          </div>
+        </div>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingPhoto}
+          className="shrink-0"
+        >
+          <Camera className="w-3.5 h-3.5 mr-1.5" />
+          Change Photo
+        </Button>
       </div>
 
-      {/* Info */}
+      {/* Account Information */}
       <div className="bg-card border rounded-xl p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-foreground">Account Information</h3>
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <User className="w-4 h-4 text-primary" />
+            Account Information
+          </h3>
           {!editing && (
-            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Edit</Button>
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Edit Profile</Button>
           )}
         </div>
 
         {editing ? (
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSaveInfo} className="space-y-4">
             <div className="space-y-2">
               <Label>Full Name</Label>
               <Input value={form.fullname} onChange={set("fullname")} required />
@@ -103,7 +246,7 @@ export default function ProfilePage() {
               <Label>Address</Label>
               <Input value={form.address} onChange={set("address")} required />
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={updateMutation.isPending}>
                 {updateMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
@@ -111,7 +254,7 @@ export default function ProfilePage() {
             </div>
           </form>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <InfoRow icon={User} label="Full Name" value={user.fullname} />
             <InfoRow icon={Mail} label="Email" value={user.email} />
             <InfoRow icon={Phone} label="Phone" value={user.phone} />
@@ -121,11 +264,62 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* Change Password Section */}
+      <div className="bg-card border rounded-xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Lock className="w-4 h-4 text-primary" />
+            Security & Password
+          </h3>
+          {!changingPassword && (
+            <Button size="sm" variant="outline" onClick={() => setChangingPassword(true)}>Change Password</Button>
+          )}
+        </div>
+
+        {changingPassword ? (
+          <form onSubmit={handleSavePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                placeholder="Enter new password (min. 6 chars)"
+                value={passwordForm.newPassword}
+                onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm New Password</Label>
+              <Input
+                type="password"
+                placeholder="Re-enter new password"
+                value={passwordForm.confirmPassword}
+                onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? "Updating..." : "Update Password"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setChangingPassword(false)}>Cancel</Button>
+            </div>
+          </form>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Password was last set during registration. You can change your password anytime.
+          </p>
+        )}
+      </div>
+
       {/* Academic Info */}
       {(user.role === "student" || user.role === "instructor") && (
         <div className="bg-card border rounded-xl p-6 space-y-4">
-          <h3 className="font-semibold text-foreground">Academic Information</h3>
-          <div className="grid gap-4">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <GraduationCap className="w-4 h-4 text-primary" />
+            Academic Details
+          </h3>
+          <div className="grid gap-4 sm:grid-cols-2">
             <InfoRow icon={Hash} label="School ID Number" value={user.studentNumber} />
             {user.role === "student" && (
               <>
@@ -142,11 +336,12 @@ export default function ProfilePage() {
       <div className="bg-card border rounded-xl p-6 space-y-3">
         <h3 className="font-semibold text-foreground">Account Details</h3>
         <div className="text-sm text-muted-foreground space-y-1">
-          <p>Account ID: <span className="font-mono text-foreground">#{user.id}</span></p>
-          <p>Role: <span className="text-foreground capitalize">{roleLabel[user.role] || user.role}</span></p>
-          <p>Member since: <span className="text-foreground">{new Date(user.createdAt).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</span></p>
+          <p>Account ID: <span className="font-mono text-foreground font-semibold">#{user.id}</span></p>
+          <p>System Role: <span className="text-foreground font-medium">{roleLabel[user.role] || user.role}</span></p>
+          <p>Member Since: <span className="text-foreground">{new Date(user.createdAt).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</span></p>
         </div>
       </div>
     </div>
   );
 }
+

@@ -45,3 +45,4 @@ export * from './user';
 export * from './userUpdate';
 export * from './verifyIdentity200';
 export * from './verifyIdentityInput';
+export * from './verifyIdentityInputRole';

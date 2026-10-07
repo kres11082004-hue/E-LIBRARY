@@ -5,11 +5,10 @@
  * E-Library System API
  * OpenAPI spec version: 0.1.0
  */
+import type { VerifyIdentityInputRole } from './verifyIdentityInputRole';
 
 export interface VerifyIdentityInput {
-  /** @nullable */
-  fullName?: string | null;
+  fullName: string;
   schoolId: string;
-  /** @nullable */
-  role?: string | null;
+  role: VerifyIdentityInputRole;
 }

@@ -142,26 +142,36 @@ router.post("/authorized-users/import", requireAuth, async (req, res) => {
 
 // POST /auth/verify-identity — public, used during registration
 router.post("/auth/verify-identity", async (req, res) => {
-  const { schoolId } = req.body;
-  if (!schoolId) {
-    return res.status(400).json({ error: "School/Employee ID is required" });
+  const { fullName, schoolId, role } = req.body;
+  if (!fullName || !schoolId || !role) {
+    return res.status(400).json({ error: "Full name, School/Employee ID, and role are required" });
   }
 
   const trimmedSchoolId = schoolId.trim();
+  const trimmedRole = role.toLowerCase().trim();
+  const trimmedFullName = fullName.trim();
 
-  // Case-insensitive match by School ID ONLY in authorized master list
+  // Case-insensitive schoolId + role match
   const rows = await db
     .select()
     .from(authorizedUsersTable)
     .where(
-      ilike(authorizedUsersTable.schoolId, trimmedSchoolId)
+      and(
+        ilike(authorizedUsersTable.schoolId, trimmedSchoolId),
+        ilike(authorizedUsersTable.role, trimmedRole)
+      )
     );
 
   if (rows.length === 0) {
-    return res.status(404).json({ error: "School/Employee ID was not found in the master list. Please contact your school's librarian." });
+    return res.status(404).json({ error: "No matching record found. Please contact your school's librarian to be added to the authorized list." });
   }
 
   const record = rows[0];
+
+  // Case-insensitive name comparison
+  if (record.fullName.toLowerCase().trim() !== trimmedFullName.toLowerCase()) {
+    return res.status(400).json({ error: "The name you entered does not match the record for this School/Employee ID." });
+  }
 
   if (record.linkedUserId) {
     return res.status(400).json({ error: "An account has already been created for this School/Employee ID." });

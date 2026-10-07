@@ -20,4 +20,7 @@ export interface UserUpdate {
   year?: string | null;
   /** @nullable */
   section?: string | null;
+  /** @nullable */
+  photoUrl?: string | null;
+  password?: string;
 }

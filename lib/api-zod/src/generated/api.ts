@@ -163,7 +163,9 @@ export const UpdateUserBody = zod.object({
   "isApproved": zod.boolean().optional(),
   "course": zod.string().nullish(),
   "year": zod.string().nullish(),
-  "section": zod.string().nullish()
+  "section": zod.string().nullish(),
+  "photoUrl": zod.string().nullish(),
+  "password": zod.string().optional()
 })
 
 export const UpdateUserResponse = zod.object({
@@ -703,9 +705,9 @@ export const DeleteAuthorizedUserParams = zod.object({
  * @summary Verify student/instructor identity against authorized list
  */
 export const VerifyIdentityBody = zod.object({
-  "fullName": zod.string().nullish(),
+  "fullName": zod.string(),
   "schoolId": zod.string(),
-  "role": zod.string().nullish()
+  "role": zod.enum(['student', 'instructor'])
 })
 
 export const VerifyIdentityResponse = zod.object({

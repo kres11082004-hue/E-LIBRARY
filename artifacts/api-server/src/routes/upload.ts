@@ -18,6 +18,46 @@ try {
   console.warn("[Warning] Could not create covers directory:", err);
 }
 
+// POST /upload/avatar — Upload profile photo as base64 string (any authenticated user)
+router.post("/upload/avatar", requireAuth, async (req, res) => {
+  try {
+    const { imageBase64, filename: originalName } = req.body as { imageBase64?: string; filename?: string };
+
+    if (!imageBase64 || typeof imageBase64 !== "string") {
+      return res.status(400).json({ error: "imageBase64 is required" });
+    }
+
+    const matches = imageBase64.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+    let ext = "png";
+    let base64Data = imageBase64;
+
+    if (matches) {
+      ext = matches[1] === "jpeg" ? "jpg" : matches[1];
+      base64Data = matches[2];
+    } else if (originalName) {
+      const parts = originalName.split(".");
+      if (parts.length > 1) ext = parts.pop() || "png";
+    }
+
+    const AVATARS_DIR = path.join(UPLOADS_DIR, "avatars");
+    if (!fs.existsSync(AVATARS_DIR)) {
+      fs.mkdirSync(AVATARS_DIR, { recursive: true });
+    }
+
+    const filename = `avatar_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const filePath = path.join(AVATARS_DIR, filename);
+
+    const buffer = Buffer.from(base64Data, "base64");
+    await fs.promises.writeFile(filePath, buffer);
+
+    const photoUrl = `/uploads/avatars/${filename}`;
+    return res.status(201).json({ photoUrl, filename });
+  } catch (err: any) {
+    req.log?.error({ err }, "Failed to upload avatar image");
+    return res.status(500).json({ error: "Failed to upload image: " + (err.message || "Unknown error") });
+  }
+});
+
 // POST /upload/cover — Upload image as base64 string or binary
 router.post("/upload/cover", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
   try {

@@ -82,16 +82,18 @@ export default function RegisterPage() {
       try {
         const res = await verifyMutation.mutateAsync({
           data: {
+            fullName: form.fullname,
             schoolId: form.studentNumber,
+            role: form.role as "student" | "instructor"
           }
         });
         if (res.valid) {
           setAuthorizedUserId(res.authorizedUserId);
-          toast({ title: "School ID Verified", description: `ID Matched Master List: Welcome, ${res.fullName || form.fullname}` });
+          toast({ title: "Identity Verified", description: `Welcome, ${res.fullName}` });
           setStep(2);
         }
       } catch (err: any) {
-        const msg = err?.data?.error || err?.response?.data?.error || "School ID verification failed.";
+        const msg = err?.data?.error || err?.response?.data?.error || "Identity verification failed.";
         toast({ title: "Verification Failed", description: msg, variant: "destructive" });
         return;
       }
@@ -181,7 +183,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <Label>Full Name</Label>
                 <Input value={form.fullname} onChange={set("fullname")} placeholder="Lastname, First Name M.I" required />
-                <p className="text-xs text-muted-foreground">Enter your full name as it appears on your school ID.</p>
+                <p className="text-xs text-muted-foreground">Must exactly match school records.</p>
               </div>
               {(isStudent || isInstructor) && (
                 <div className="space-y-2">

@@ -858,6 +858,10 @@ components:
           type: ["string", "null"]
         section:
           type: ["string", "null"]
+        photoUrl:
+          type: ["string", "null"]
+        password:
+          type: string
 
     Book:
       type: object
@@ -1185,14 +1189,15 @@ components:
 
     VerifyIdentityInput:
       type: object
-      required: [schoolId]
+      required: [fullName, schoolId, role]
       properties:
         fullName:
-          type: ["string", "null"]
+          type: string
         schoolId:
           type: string
         role:
-          type: ["string", "null"]
+          type: string
+          enum: [student, instructor]
 
     BorrowingReportHistoryItem:
       type: object

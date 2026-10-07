@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, usersTable, authorizedUsersTable, borrowRecordsTable, reservationsTable, myListTable, downloadsTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
-
+import { hashPassword } from "./auth.js";
 
 const router = Router();
 
@@ -74,7 +74,7 @@ router.get("/users/:id", requireAuth, async (req, res) => {
 // PUT /users/:id
 router.put("/users/:id", requireAuth, async (req, res) => {
   const id = parseInt(req.params["id"] as string);
-  const { fullname, phone, address, campus, isApproved, course, year, section } = req.body;
+  const { fullname, phone, address, campus, isApproved, course, year, section, photoUrl, password } = req.body;
 
   // Only admins/librarians can update other users or approval status
   if (req.user!.id !== id && !["admin", "librarian"].includes(req.user!.role)) {
@@ -89,6 +89,10 @@ router.put("/users/:id", requireAuth, async (req, res) => {
   if (course !== undefined) updates.course = course;
   if (year !== undefined) updates.year = year;
   if (section !== undefined) updates.section = section;
+  if (photoUrl !== undefined) updates.photoUrl = photoUrl;
+  if (password) {
+    updates.passwordHash = hashPassword(password);
+  }
   if (isApproved !== undefined && ["admin", "librarian"].includes(req.user!.role)) {
     updates.isApproved = isApproved;
   }

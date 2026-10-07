@@ -52,6 +52,11 @@ Thumbs.db
 # Environment variables
 .env
 
-
 .vercel
 .env*
+
+# Uploads & scratch scripts
+uploads
+**/uploads
+*.cjs
+Untitled*

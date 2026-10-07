@@ -89,6 +89,9 @@ export interface UserUpdate {
   year?: string | null;
   /** @nullable */
   section?: string | null;
+  /** @nullable */
+  photoUrl?: string | null;
+  password?: string;
 }
 
 export interface Book {
@@ -339,12 +342,18 @@ export interface AuthorizedUserInput {
   course?: string | null;
 }
 
+export type VerifyIdentityInputRole = typeof VerifyIdentityInputRole[keyof typeof VerifyIdentityInputRole];
+
+
+export const VerifyIdentityInputRole = {
+  student: 'student',
+  instructor: 'instructor',
+} as const;
+
 export interface VerifyIdentityInput {
-  /** @nullable */
-  fullName?: string | null;
+  fullName: string;
   schoolId: string;
-  /** @nullable */
-  role?: string | null;
+  role: VerifyIdentityInputRole;
 }
 
 export interface BorrowingReportHistoryItem {
