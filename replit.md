@@ -5,7 +5,7 @@ A full-stack e-library and physical library management system for educational in
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080, proxied at `/api`)
-- `pnpm --filter @workspace/elibrary run dev` — run the frontend (port 19545, proxied at `/`)
+- `pnpm --filter @workspace/elibrary run dev` — run the frontend (port 5173, proxied at `/`)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
