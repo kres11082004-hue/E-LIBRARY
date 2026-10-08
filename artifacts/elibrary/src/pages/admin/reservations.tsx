@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { BackButton } from "@/components/back-button";
 import {
-  CalendarCheck, Clock, CheckCircle, XCircle, BookOpen, User, Search, Filter, CheckCircle2,
+  CalendarCheck, Clock, CheckCircle, XCircle, BookOpen, User, Search, Filter, CheckCircle2, Hash,
 } from "lucide-react";
 
 type ReservationStatus = "pending" | "ready" | "fulfilled" | "cancelled" | "returned";
@@ -215,6 +215,9 @@ export default function AdminReservationsPage() {
                     <span className="flex items-center gap-1"><User className="w-3 h-3" />{r.userName}</span>
                     <span>{r.userEmail}</span>
                     <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{r.bookCampus}</span>
+                    {(r as any).bookIsbn && (
+                      <span className="flex items-center gap-1"><Hash className="w-3 h-3" />ISBN: {(r as any).bookIsbn}</span>
+                    )}
                     <span>{new Date(r.reservedAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}</span>
                   </div>
                   {r.notes && (

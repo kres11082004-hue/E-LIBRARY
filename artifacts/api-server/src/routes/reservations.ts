@@ -32,6 +32,7 @@ router.get("/reservations", requireAuth, async (req, res) => {
       bookAuthor: booksTable.author,
       bookCoverUrl: booksTable.coverUrl,
       bookCampus: booksTable.campus,
+      bookIsbn: booksTable.isbn,
     })
     .from(reservationsTable)
     .innerJoin(usersTable, eq(usersTable.id, reservationsTable.userId))
@@ -92,6 +93,7 @@ router.post("/reservations", requireAuth, async (req, res) => {
       bookAuthor: booksTable.author,
       bookCoverUrl: booksTable.coverUrl,
       bookCampus: booksTable.campus,
+      bookIsbn: booksTable.isbn,
     })
     .from(reservationsTable)
     .innerJoin(usersTable, eq(usersTable.id, reservationsTable.userId))
