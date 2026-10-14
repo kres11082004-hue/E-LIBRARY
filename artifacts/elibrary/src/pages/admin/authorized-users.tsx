@@ -274,7 +274,7 @@ export default function AuthorizedUsersAdmin() {
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
-                <Plus className="w-4 h-4" /> Add Record
+                <Plus className="w-4 h-4" /> Add User
               </Button>
             </DialogTrigger>
           <DialogContent>
@@ -307,7 +307,7 @@ export default function AuthorizedUsersAdmin() {
                 </div>
               )}
               <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Adding..." : "Add Record"}
+                {createMutation.isPending ? "Adding..." : "Add User"}
               </Button>
             </form>
           </DialogContent>
