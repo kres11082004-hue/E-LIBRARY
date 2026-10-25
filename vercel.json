@@ -1,7 +1,12 @@
 {
+  "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/elibrary run build",
   "outputDirectory": "artifacts/elibrary/dist/public",
+
+  "env": {
+    "NODE_ENV": "production"
+  },
 
   "rewrites": [
     {
