@@ -12,6 +12,7 @@ import authorizedUsersRouter from "./authorized-users.js";
 import reportsRouter from "./reports.js";
 import downloadsRouter from "./downloads.js";
 import uploadRouter from "./upload.js";
+import notificationsRouter from "./notifications.js";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(authorizedUsersRouter);
 router.use(reportsRouter);
 router.use(downloadsRouter);
 router.use(uploadRouter);
+router.use(notificationsRouter);
 
 export default router;

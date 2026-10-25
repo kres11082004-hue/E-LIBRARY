@@ -39,7 +39,9 @@ const CAMPUSES = [
 const emptyForm = {
   title: "", author: "", description: "", content: "", category: "Information Systems", campus: "ZDSPGC-Molave Campus",
   department: "Department of Information System (BSIS)",
-  coverUrl: "", fileUrl: "", isbn: "", publishedYear: "", isAvailablePhysical: false, totalCopies: "0",
+  coverUrl: "", fileUrl: "", isbn: "", publishedYear: "",
+  availabilityType: "physical" as "physical" | "online" | "both",
+  isAvailablePhysical: false, totalCopies: "0",
 };
 
 export default function AdminBooksPage() {
@@ -91,24 +93,57 @@ export default function AdminBooksPage() {
 
     setUploadingCover(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        const token = localStorage.getItem("token");
-        const res = await fetch("/api/upload/cover", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ imageBase64: base64, filename: file.name }),
+      // --- Compress before upload ---
+      const compressImage = (src: string): Promise<string> =>
+        new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            const MAX_W = 600;
+            const MAX_H = 800;
+            let { width, height } = img;
+            if (width > MAX_W || height > MAX_H) {
+              const ratio = Math.min(MAX_W / width, MAX_H / height);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.80));
+          };
+          img.onerror = reject;
+          img.src = src;
         });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "Upload failed" }));
-          throw new Error(err.error || "Upload failed");
-        }
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const raw = event.target?.result as string;
+          const base64 = await compressImage(raw);
+          const token = localStorage.getItem("token");
+          const res = await fetch("/api/upload/cover", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ imageBase64: base64, filename: file.name.replace(/\.[^.]+$/, ".jpg") }),
+          });
 
-        const data = await res.json();
-        setForm(f => ({ ...f, coverUrl: data.coverUrl }));
-        toast({ title: "Cover uploaded!", description: "Book cover image saved successfully." });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: "Upload failed" }));
+            throw new Error(err.error || "Upload failed");
+          }
+
+          const data = await res.json();
+          setForm(f => ({ ...f, coverUrl: data.coverUrl }));
+          toast({ title: "Cover uploaded!", description: "Book cover image saved successfully." });
+        } catch (err: any) {
+          toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+        } finally {
+          setUploadingCover(false);
+        }
+      };
+      reader.onerror = () => {
+        toast({ title: "Upload failed", description: "Could not read file.", variant: "destructive" });
         setUploadingCover(false);
       };
       reader.readAsDataURL(file);
@@ -117,6 +152,7 @@ export default function AdminBooksPage() {
       setUploadingCover(false);
     }
   };
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -296,6 +332,10 @@ export default function AdminBooksPage() {
       publishedYear: book.publishedYear?.toString() || "",
       isAvailablePhysical: book.isAvailablePhysical,
       totalCopies: book.totalCopies.toString(),
+      availabilityType: (
+        book.isAvailablePhysical && book.fileUrl ? "both" :
+        book.isAvailablePhysical ? "physical" : "online"
+      ) as "physical" | "online" | "both",
     });
     setEditId(book.id);
     setShowDialog(true);
@@ -325,11 +365,11 @@ export default function AdminBooksPage() {
       campus: form.campus,
       department: form.department,
       coverUrl: form.coverUrl || null,
-      fileUrl: form.fileUrl || null,
+      fileUrl: (form.availabilityType === "online" || form.availabilityType === "both") ? (form.fileUrl || null) : null,
       isbn: form.isbn || null,
       publishedYear: form.publishedYear ? parseInt(form.publishedYear) : null,
-      isAvailablePhysical: form.isAvailablePhysical,
-      totalCopies: parseInt(form.totalCopies) || 0,
+      isAvailablePhysical: form.availabilityType === "physical" || form.availabilityType === "both",
+      totalCopies: (form.availabilityType === "physical" || form.availabilityType === "both") ? (parseInt(form.totalCopies) || 0) : 0,
     };
     try {
       if (editId) {
@@ -946,34 +986,48 @@ export default function AdminBooksPage() {
                     <Input type="number" value={form.publishedYear} onChange={set("publishedYear")} placeholder="2024" min="1000" max="2100" />
                   </div>
 
-                  {/* Physical Copies */}
-                  <div className="col-span-2 space-y-2">
-                    <Label className="flex items-center gap-1.5">📚 Physical Copies</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(["none", "available"] as const).map((v) => {
-                        const active = v === "none" ? !form.isAvailablePhysical : form.isAvailablePhysical;
+                  {/* ── Availability Type ─────────────────────────────── */}
+                  <div className="col-span-2 space-y-3">
+                    <Label className="flex items-center gap-1.5 font-semibold">📋 Book Availability</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {([
+                        { value: "physical", icon: "📚", label: "Physical Copy",   sub: "Borrowable from library" },
+                        { value: "online",   icon: "🌐", label: "Available Online", sub: "Viewable / downloadable" },
+                        { value: "both",     icon: "✨", label: "Both",             sub: "Physical & online" },
+                      ] as const).map(({ value, icon, label, sub }) => {
+                        const active = form.availabilityType === value;
+                        const colors = {
+                          physical: active ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:border-blue-400" : "",
+                          online:   active ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-950/40 dark:border-green-400" : "",
+                          both:     active ? "border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:border-purple-400" : "",
+                        }[value];
                         return (
                           <button
-                            key={v}
+                            key={value}
                             type="button"
-                            onClick={() => {
-                              if (v === "none") setForm(f => ({ ...f, isAvailablePhysical: false, totalCopies: "0" }));
-                              else setForm(f => ({ ...f, isAvailablePhysical: true, totalCopies: f.totalCopies === "0" ? "1" : f.totalCopies }));
-                            }}
-                            className={`flex flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 text-center transition-all ${
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              availabilityType: value,
+                              isAvailablePhysical: value === "physical" || value === "both",
+                              totalCopies: (value === "physical" || value === "both") && f.totalCopies === "0" ? "1" : f.totalCopies,
+                            }))}
+                            className={`flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3.5 text-center transition-all hover:shadow-sm ${
                               active
-                                ? "border-green-500 bg-green-50 text-green-700"
-                                : "border-input bg-background text-muted-foreground hover:border-green-300 hover:text-foreground"
+                                ? colors
+                                : "border-input bg-background text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground"
                             }`}
                           >
-                            <span className="text-xl">{v === "none" ? "🚫" : "📚"}</span>
-                            <span className="text-xs font-semibold">{v === "none" ? "None" : "Available"}</span>
+                            <span className="text-2xl">{icon}</span>
+                            <span className="text-xs font-semibold leading-tight">{label}</span>
+                            <span className="text-[10px] text-muted-foreground leading-tight">{sub}</span>
                           </button>
                         );
                       })}
                     </div>
-                    {form.isAvailablePhysical && (
-                      <div className="flex items-center gap-3 pt-1">
+
+                    {/* Physical copy count — shown when physical or both */}
+                    {(form.availabilityType === "physical" || form.availabilityType === "both") && (
+                      <div className="flex items-center gap-3 pt-1 pl-1">
                         <Label className="text-sm shrink-0">Number of Copies</Label>
                         <Input
                           type="number"

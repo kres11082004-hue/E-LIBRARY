@@ -43,11 +43,22 @@ const COURSES = [
 const YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 const ASSOCIATE_YEAR_OPTIONS = ["1st Year", "2nd Year"];
 
+// Build fullname in "Lastname, Firstname Middlename" format
+function buildFullName(lastName: string, firstName: string, middleName: string): string {
+  const last = lastName.trim();
+  const first = firstName.trim();
+  const middle = middleName.trim();
+  if (!last && !first) return "";
+  const givenNames = middle ? `${first} ${middle}` : first;
+  return last ? `${last}, ${givenNames}` : givenNames;
+}
+
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [showPass, setShowPass] = useState(false);
   const [form, setForm] = useState({
-    fullname: "", email: "", password: "", phone: "", address: "", campus: "", role: "student",
+    lastName: "", firstName: "", middleName: "",
+    email: "", password: "", phone: "", address: "", campus: "", role: "student",
     photoUrl: "",
     studentNumber: "", course: "", year: "", section: "",
   });
@@ -80,9 +91,10 @@ export default function RegisterPage() {
   const handleNext = async () => {
     if (step === 1 && (isStudent || isInstructor)) {
       try {
+        const fullName = buildFullName(form.lastName, form.firstName, form.middleName);
         const res = await verifyMutation.mutateAsync({
           data: {
-            fullName: form.fullname,
+            fullName,
             schoolId: form.studentNumber,
             role: form.role as "student" | "instructor"
           }
@@ -112,7 +124,7 @@ export default function RegisterPage() {
     try {
       const result = await registerMutation.mutateAsync({
         data: {
-          fullname: form.fullname,
+          fullname: buildFullName(form.lastName, form.firstName, form.middleName),
           email: form.email,
           password: form.password,
           phone: form.phone,
@@ -180,11 +192,21 @@ export default function RegisterPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input value={form.fullname} onChange={set("fullname")} placeholder="Lastname, First Name M.I" required />
-                <p className="text-xs text-muted-foreground">Must exactly match school records.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2 col-span-2">
+                  <Label>Last Name</Label>
+                  <Input value={form.lastName} onChange={set("lastName")} placeholder="e.g. Dela Cruz" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>First Name</Label>
+                  <Input value={form.firstName} onChange={set("firstName")} placeholder="e.g. Juan" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Input value={form.middleName} onChange={set("middleName")} placeholder="e.g. Santos" />
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground -mt-1">Must exactly match school records.</p>
               {(isStudent || isInstructor) && (
                 <div className="space-y-2">
                   <Label>{isStudent ? "School ID Number" : "Employee ID Number"}</Label>

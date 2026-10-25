@@ -1,12 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useListBooks } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth-context";
-import { Search, BookOpen, Filter, Plus, Building2, ArrowLeft } from "lucide-react";
+import { Search, BookOpen, Filter, Plus, Building2, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { BackButton } from "@/components/back-button";
+
+const PAGE_SIZE = 24;
 
 const CATEGORIES = ["All", "Computer Science", "Information Systems", "Programming", "Database Management", "Networking & Security", "Physical Education", "Sports Science", "Health & Fitness", "Mathematics", "General Education", "Thesis & Research"];
 
@@ -25,6 +27,9 @@ function BookCard({ book }: { book: any }) {
           <img
             src={book.coverUrl}
             alt={book.title}
+            loading="lazy"
+            width={200}
+            height={176}
             onError={() => setImgError(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -77,6 +82,7 @@ export default function BooksPage() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [page, setPage] = useState(1);
   const [, setLocation] = useLocation();
 
   const searchStr = useSearch();
@@ -87,6 +93,9 @@ export default function BooksPage() {
     search: search || undefined,
     category: category !== "All" ? category : undefined,
   });
+
+  // Reset to page 1 whenever filters or department change
+  useEffect(() => { setPage(1); }, [search, category, departmentFilter]);
 
   const { bsisCount, bpedCount } = useMemo(() => {
     let bsis = 0;
@@ -104,7 +113,7 @@ export default function BooksPage() {
     return { bsisCount: bsis, bpedCount: bped };
   }, [booksRaw]);
 
-  const books = booksRaw.filter((b: any) => {
+  const books = useMemo(() => booksRaw.filter((b: any) => {
     if (!departmentFilter) return true;
     const dept = (b.department || "").toLowerCase();
     const title = (b.title || "").toLowerCase();
@@ -117,7 +126,13 @@ export default function BooksPage() {
       return !isBped;
     }
     return true;
-  });
+  }), [booksRaw, departmentFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(books.length / PAGE_SIZE));
+  const pagedBooks = useMemo(
+    () => books.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [books, page]
+  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -291,7 +306,7 @@ export default function BooksPage() {
           {/* Books Grid */}
           {isLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {Array.from({ length: 10 }).map((_, i) => (
+              {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="bg-card border rounded-xl overflow-hidden animate-pulse">
                   <div className="h-44 bg-muted" />
                   <div className="p-3 space-y-2">
@@ -309,14 +324,48 @@ export default function BooksPage() {
               <p className="text-muted-foreground text-sm mt-1">Try a different search or category</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {books.map((book: any) => (
-                <BookCard
-                  key={book.id}
-                  book={book}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {pagedBooks.map((book: any) => (
+                  <BookCard
+                    key={book.id}
+                    book={book}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                  <p className="text-xs text-muted-foreground">
+                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, books.length)} of {books.length} books
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      disabled={page === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-xs font-medium px-2 min-w-[60px] text-center">
+                      {page} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      disabled={page === totalPages}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
