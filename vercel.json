@@ -8,6 +8,12 @@
     "NODE_ENV": "production"
   },
 
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
+    }
+  },
+
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -18,7 +24,7 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/((?!api|uploads|assets|.*\\.).*)",
+      "source": "/((?!api|uploads|assets|.*\\\\.).*)",
       "destination": "/index.html"
     }
   ]

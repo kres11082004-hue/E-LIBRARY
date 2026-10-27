@@ -4,21 +4,48 @@ import type { AuthUser } from "../types/express.js";
 
 export type { AuthUser };
 
-// Simple token store: token -> user (in-memory, sufficient for this use case)
-const tokenStore = new Map<string, AuthUser>();
+/**
+ * Stateless signed token auth — works across Vercel serverless instances.
+ *
+ * Token format: base64url(payload) + "." + HMAC-SHA256(base64url(payload), SECRET)
+ * The secret is SESSION_SECRET from env (falls back to a build-time constant only
+ * for local dev — production MUST have SESSION_SECRET set).
+ */
 
-export function generateToken(user: AuthUser): string {
-  const token = crypto.randomBytes(32).toString("hex");
-  tokenStore.set(token, user);
-  return token;
+const SECRET = process.env.SESSION_SECRET || "elibrary_fallback_secret_do_not_use_in_prod";
+
+function b64url(str: string): string {
+  return Buffer.from(str).toString("base64url");
 }
 
-export function revokeToken(token: string): void {
-  tokenStore.delete(token);
+function sign(payload: string): string {
+  return crypto.createHmac("sha256", SECRET).update(payload).digest("base64url");
+}
+
+export function generateToken(user: AuthUser): string {
+  const payload = b64url(JSON.stringify(user));
+  const sig = sign(payload);
+  return `${payload}.${sig}`;
+}
+
+export function revokeToken(_token: string): void {
+  // Stateless tokens can't be revoked server-side without a denylist.
+  // For this app, logout is handled client-side by discarding the token.
 }
 
 export function getUserByToken(token: string): AuthUser | undefined {
-  return tokenStore.get(token);
+  const dot = token.lastIndexOf(".");
+  if (dot < 0) return undefined;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = sign(payload);
+  // Constant-time comparison
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return undefined;
+  try {
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as AuthUser;
+  } catch {
+    return undefined;
+  }
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
@@ -28,7 +55,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return;
   }
   const token = authHeader.slice(7);
-  const user = tokenStore.get(token);
+  const user = getUserByToken(token);
   if (!user) {
     res.status(401).json({ error: "Unauthorized" });
     return;
