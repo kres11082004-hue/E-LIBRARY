@@ -27,7 +27,25 @@ router.get("/books", requireAuth, async (req, res) => {
   try {
     const { search, category, campus, department } = req.query as Record<string, string>;
 
-    let books = await db.select().from(booksTable).orderBy(asc(booksTable.title));
+    // Select only the fields needed for the list view — deliberately omit `content`
+    // to keep the payload small. Full content is returned by GET /books/:id.
+    let books = await db.select({
+      id: booksTable.id,
+      title: booksTable.title,
+      author: booksTable.author,
+      description: booksTable.description,
+      category: booksTable.category,
+      campus: booksTable.campus,
+      department: booksTable.department,
+      coverUrl: booksTable.coverUrl,
+      fileUrl: booksTable.fileUrl,
+      isbn: booksTable.isbn,
+      publishedYear: booksTable.publishedYear,
+      isAvailablePhysical: booksTable.isAvailablePhysical,
+      totalCopies: booksTable.totalCopies,
+      availableCopies: booksTable.availableCopies,
+      createdAt: booksTable.createdAt,
+    }).from(booksTable).orderBy(asc(booksTable.title));
 
     if (search) {
       const q = search.toLowerCase();
@@ -54,11 +72,12 @@ router.get("/books", requireAuth, async (req, res) => {
     }
 
     return res.json(books.map(b => ({
-      ...formatBook(b),
+      ...b,
+      createdAt: b.createdAt.toISOString(),
       department: resolveBookDepartment(b)
     })));
   } catch (err: any) {
-    req.log.error({ err }, "Error fetching books list");
+    console.error("Error fetching books list:", err);
     return res.status(500).json({ error: "Failed to fetch books: " + err.message });
   }
 });

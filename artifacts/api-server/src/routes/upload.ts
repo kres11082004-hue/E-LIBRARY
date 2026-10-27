@@ -1,6 +1,7 @@
 import { Router } from "express";
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 
 const router = Router();
@@ -44,11 +45,16 @@ router.post("/upload/avatar", requireAuth, async (req, res) => {
       fs.mkdirSync(AVATARS_DIR, { recursive: true });
     }
 
-    const filename = `avatar_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const filePath = path.join(AVATARS_DIR, filename);
+    // Compress to WebP regardless of source format
+    const rawBuffer = Buffer.from(base64Data, "base64");
+    const compressed = await sharp(rawBuffer)
+      .resize(300, 300, { fit: "cover", position: "center" })
+      .webp({ quality: 85 })
+      .toBuffer();
 
-    const buffer = Buffer.from(base64Data, "base64");
-    await fs.promises.writeFile(filePath, buffer);
+    const filename = `avatar_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.webp`;
+    const filePath = path.join(AVATARS_DIR, filename);
+    await fs.promises.writeFile(filePath, compressed);
 
     const photoUrl = `/uploads/avatars/${filename}`;
     return res.status(201).json({ photoUrl, filename });
@@ -80,11 +86,16 @@ router.post("/upload/cover", requireAuth, requireRole("admin", "librarian"), asy
       if (parts.length > 1) ext = parts.pop() || "png";
     }
 
-    const filename = `cover_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const filePath = path.join(COVERS_DIR, filename);
+    // Compress to WebP: max 400×600, preserves aspect ratio, ~75% smaller than PNG/JPEG
+    const rawBuffer = Buffer.from(base64Data, "base64");
+    const compressed = await sharp(rawBuffer)
+      .resize(400, 600, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
 
-    const buffer = Buffer.from(base64Data, "base64");
-    await fs.promises.writeFile(filePath, buffer);
+    const filename = `cover_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.webp`;
+    const filePath = path.join(COVERS_DIR, filename);
+    await fs.promises.writeFile(filePath, compressed);
 
     const coverUrl = `/uploads/covers/${filename}`;
     return res.status(201).json({ coverUrl, filename });

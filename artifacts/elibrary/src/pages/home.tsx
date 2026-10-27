@@ -34,7 +34,14 @@ function BookCard({ book }: { book: any }) {
       <div className="bg-card border rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer group h-full flex flex-col">
         <div className="h-40 bg-muted flex items-center justify-center overflow-hidden relative shrink-0">
           {book.coverUrl ? (
-            <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            <img
+              src={book.coverUrl}
+              alt={book.title}
+              loading="lazy"
+              width={200}
+              height={160}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
           ) : (
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <BookOpen className="w-8 h-8" />
