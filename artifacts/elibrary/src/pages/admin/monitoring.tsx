@@ -246,9 +246,6 @@ export default function AdminMonitoringPage() {
               <Bell className="w-3 h-3" /> {reminders.length} reminder{reminders.length !== 1 ? "s" : ""}
             </Badge>
           )}
-          <Button onClick={() => setShowBorrowDialog(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Issue Book
-          </Button>
         </div>
       </div>
 
