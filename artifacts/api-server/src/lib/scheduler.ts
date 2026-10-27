@@ -1,4 +1,4 @@
-import cron from "node-cron";
+import cron, { type ScheduledTask } from "node-cron";
 import { db, borrowRecordsTable, usersTable, booksTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendDueReminderEmail } from "./mailer.js";
@@ -172,17 +172,17 @@ async function checkAndMarkOverdue(): Promise<void> {
 // Schedulers
 // ---------------------------------------------------------------------------
 
-let reminderTask: cron.ScheduledTask | null = null;
-let overdueTask: cron.ScheduledTask | null = null;
+let reminderTask: ScheduledTask | null = null;
+let overdueTask: ScheduledTask | null = null;
 
 /**
  * Starts the automatic reminder schedulers:
- *  1. Due-date reminders  — every hour  (email+SMS for books due soon / overdue)
- *  2. Overdue checker     — every 30 min (marks overdue, auto-sends reminders)
+ *  1. Due-date reminders  - every hour  (email+SMS for books due soon / overdue)
+ *  2. Overdue checker     - every 30 min (marks overdue, auto-sends reminders)
  *
  * Override with env vars:
- *   REMINDER_CRON  (default "0 * * * *"  — every hour)
- *   OVERDUE_CRON   (default "*/30 * * * *" — every 30 min)
+ *   REMINDER_CRON  (default "0 * * * *"  - every hour)
+ *   OVERDUE_CRON   (default "*\/30 * * * *" - every 30 min)
  */
 export function startReminderScheduler(): void {
   // 1. Hourly due-date reminder dispatch
@@ -194,7 +194,7 @@ export function startReminderScheduler(): void {
   }
 
   reminderTask = cron.schedule(reminderCron, async () => {
-    logger.info("Running scheduled due-date reminder job…");
+    logger.info("Running scheduled due-date reminder job...");
     try {
       const results = await dispatchDueReminders();
       const sent = results.filter((r) => r.emailSent || r.smsSent).length;
@@ -211,7 +211,7 @@ export function startReminderScheduler(): void {
 
   if (cron.validate(overdueCron)) {
     overdueTask = cron.schedule(overdueCron, async () => {
-      logger.info("Running overdue checker…");
+      logger.info("Running overdue checker...");
       try {
         await checkAndMarkOverdue();
       } catch (err) {
@@ -223,7 +223,7 @@ export function startReminderScheduler(): void {
 
   // Run an initial overdue check 10 seconds after startup
   setTimeout(async () => {
-    logger.info("Running initial overdue check on startup…");
+    logger.info("Running initial overdue check on startup...");
     try { await checkAndMarkOverdue(); } catch (err) { logger.error({ err }, "Initial overdue check failed"); }
   }, 10_000);
 }

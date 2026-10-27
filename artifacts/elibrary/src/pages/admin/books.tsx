@@ -96,7 +96,7 @@ export default function AdminBooksPage() {
       // --- Compress before upload ---
       const compressImage = (src: string): Promise<string> =>
         new Promise((resolve, reject) => {
-          const img = new Image();
+          const img = new window.Image();
           img.onload = () => {
             const MAX_W = 600;
             const MAX_H = 800;
