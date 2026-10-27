@@ -23,8 +23,9 @@ export default function LoginPage() {
       const result = await loginMutation.mutateAsync({ data: { email, password } });
       login(result.token, result.user);
       setLocation("/");
-    } catch {
-      toast({ title: "Invalid email or password", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.data?.error || err?.message || "Invalid email or password";
+      toast({ title: msg, variant: "destructive" });
     }
   };
 

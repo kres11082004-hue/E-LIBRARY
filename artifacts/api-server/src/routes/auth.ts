@@ -18,28 +18,33 @@ router.post("/auth/login", async (req, res) => {
     return res.status(400).json({ error: "Email and password required" });
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
-  if (!user) {
-    return res.status(401).json({ error: "Invalid credentials" });
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const hash = hashPassword(password);
+    if (hash !== user.passwordHash) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const token = generateToken({ id: user.id, email: user.email, role: user.role, campus: user.campus });
+
+    // Log activity
+    await db.insert(activityLogTable).values({
+      type: "login",
+      description: `${user.fullname} logged in`,
+      userName: user.fullname,
+      campus: user.campus,
+    });
+
+    const { passwordHash: _, ...safeUser } = user;
+    return res.json({ token, user: safeUser });
+  } catch (err: any) {
+    console.error("Login error:", err);
+    return res.status(500).json({ error: "Internal server error. Please check server logs." });
   }
-
-  const hash = hashPassword(password);
-  if (hash !== user.passwordHash) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
-  const token = generateToken({ id: user.id, email: user.email, role: user.role, campus: user.campus });
-
-  // Log activity
-  await db.insert(activityLogTable).values({
-    type: "login",
-    description: `${user.fullname} logged in`,
-    userName: user.fullname,
-    campus: user.campus,
-  });
-
-  const { passwordHash: _, ...safeUser } = user;
-  return res.json({ token, user: safeUser });
 });
 
 // POST /auth/register
