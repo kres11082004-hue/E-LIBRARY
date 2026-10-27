@@ -100,7 +100,7 @@ router.post("/auth/register", async (req, res) => {
       course: course || null,
       year: year || null,
       section: section || null,
-      isApproved: isAdmin, // admins auto-approved, others need approval
+      isApproved: true, // all users are auto-approved on registration
     }).returning();
 
     // Link the authorized user record
