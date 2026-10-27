@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db, reservationsTable, booksTable, usersTable, borrowRecordsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
+import { sendReservationEmail } from "../lib/mailer.js";
+import { sendReservationSms } from "../lib/sms.js";
 
 const router = Router();
 
@@ -100,6 +102,14 @@ router.post("/reservations", requireAuth, async (req, res) => {
     .innerJoin(booksTable, eq(booksTable.id, reservationsTable.bookId))
     .where(eq(reservationsTable.id, reservation.id));
 
+  // Notify user — fire-and-forget (never blocks the response)
+  if (full) {
+    Promise.all([
+      sendReservationEmail({ userName: full.userName, userEmail: full.userEmail, bookTitle: full.bookTitle, status: "pending" }),
+      sendReservationSms({ userName: full.userName, userPhone: "", bookTitle: full.bookTitle, status: "pending" }),
+    ]).catch(() => {});
+  }
+
   return res.status(201).json(fmt(full));
 });
 
@@ -146,6 +156,21 @@ router.put("/reservations/:id", requireAuth, requireRole("admin", "librarian"), 
     .set({ status, notes: notes ?? undefined, updatedAt: new Date() })
     .where(eq(reservationsTable.id, id))
     .returning();
+
+  // Fetch user + book info for notification
+  const [[notifUser], [notifBook]] = await Promise.all([
+    db.select({ fullname: usersTable.fullname, email: usersTable.email, phone: usersTable.phone })
+      .from(usersTable).where(eq(usersTable.id, existingReservation.userId)),
+    db.select({ title: booksTable.title })
+      .from(booksTable).where(eq(booksTable.id, existingReservation.bookId)),
+  ]);
+
+  if (notifUser && notifBook) {
+    Promise.all([
+      sendReservationEmail({ userName: notifUser.fullname, userEmail: notifUser.email, bookTitle: notifBook.title, status }),
+      sendReservationSms({ userName: notifUser.fullname, userPhone: notifUser.phone || "", bookTitle: notifBook.title, status }),
+    ]).catch(() => {});
+  }
 
   return res.json(fmt(updated));
 });

@@ -3,6 +3,8 @@ import { db, borrowRecordsTable, usersTable, booksTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { activityLogTable } from "@workspace/db";
+import { sendBorrowEmail, sendReturnEmail } from "../lib/mailer.js";
+import { sendBorrowSms, sendReturnSms } from "../lib/sms.js";
 
 const router = Router();
 
@@ -82,6 +84,16 @@ router.post("/borrow-records", requireAuth, requireRole("admin", "librarian"), a
     campus: user?.campus || "",
   });
 
+  // Auto-send borrow notification (email + SMS) in background — does not delay response
+  if (user) {
+    const dueDateObj = new Date(dueDate);
+    Promise.all([
+      sendBorrowEmail({ userName: user.fullname, userEmail: user.email, bookTitle: book.title, dueDate: dueDateObj.toISOString() }),
+      sendBorrowSms({ userName: user.fullname, userPhone: user.phone || "", bookTitle: book.title, dueDate: dueDateObj.toISOString() }),
+    ]).catch(() => {});
+  }
+
+
   return res.status(201).json(await formatRecord(record));
 });
 
@@ -113,6 +125,14 @@ router.put("/borrow-records/:id", requireAuth, requireRole("admin", "librarian")
         bookTitle: book.title,
         campus: user?.campus || "",
       });
+
+      // Return notification — fire-and-forget
+      if (user) {
+        Promise.all([
+          sendReturnEmail({ userName: user.fullname, userEmail: user.email, bookTitle: book.title }),
+          sendReturnSms({ userName: user.fullname, userPhone: user.phone || "", bookTitle: book.title }),
+        ]).catch(() => {});
+      }
     }
   }
 
