@@ -8,6 +8,7 @@ const { Client } = pg;
 
 const LOCAL_URL = "postgresql://postgres:KrestinMae08@localhost:5433/ELIBRARY_db";
 const NEON_URL  = "postgresql://neondb_owner:npg_GfdNbUB2AzE7@ep-bitter-king-ak45wfpd-pooler.c-3.us-west-2.aws.neon.tech/neondb?sslmode=require";
+const BATCH_SIZE = 500; // rows per INSERT batch
 
 // FK-safe order (parents before children)
 const TABLE_ORDER = [
@@ -26,7 +27,12 @@ async function main() {
   const local = new Client({ connectionString: LOCAL_URL });
   await local.connect();
 
-  const neon = new Client({ connectionString: NEON_URL, ssl: { rejectUnauthorized: false } });
+  const neon = new Client({
+    connectionString: NEON_URL,
+    ssl: { rejectUnauthorized: false },
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
+  });
   await neon.connect();
 
   // ── Step 1: Create schema in Neon from local ──────────────────────────────
@@ -160,22 +166,46 @@ async function main() {
       }
 
       const cols = fields.map(f => `"${f.name}"`).join(", ");
+      const colNames = fields.map(f => f.name);
       let ok = 0, skip = 0;
 
-      for (const row of rows) {
-        const values = fields.map(f => row[f.name]);
-        const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
+      // Batch insert for speed (avoids per-row round-trips)
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        const batch = rows.slice(i, i + BATCH_SIZE);
+        // Build: INSERT INTO t (cols) SELECT * FROM unnest($1::type[], ...) ON CONFLICT DO NOTHING
+        // Simpler: build multi-row VALUES
+        const valueSets = [];
+        const allValues = [];
+        let paramIdx = 1;
+        for (const row of batch) {
+          const rowVals = colNames.map(c => row[c]);
+          const placeholders = rowVals.map(() => `$${paramIdx++}`).join(", ");
+          valueSets.push(`(${placeholders})`);
+          allValues.push(...rowVals);
+        }
         try {
-          await neon.query(
-            `INSERT INTO "${table}" (${cols}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`,
-            values
+          const res = await neon.query(
+            `INSERT INTO "${table}" (${cols}) VALUES ${valueSets.join(",")} ON CONFLICT DO NOTHING`,
+            allValues
           );
-          ok++;
+          ok += res.rowCount || batch.length;
         } catch (e) {
           if (e.code === "23503") {
-            console.log(`   ⚠ FK skip ${table}#${row.id}: ${e.detail}`);
+            // FK violation in batch — fall back to row-by-row for this batch
+            for (const row of batch) {
+              const values = colNames.map(c => row[c]);
+              const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
+              try {
+                await neon.query(`INSERT INTO "${table}" (${cols}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`, values);
+                ok++;
+              } catch (e2) {
+                skip++;
+              }
+            }
+          } else {
+            console.log(`   ⚠ Batch error ${table}: ${e.message}`);
+            skip += batch.length;
           }
-          skip++;
         }
       }
 
