@@ -5,20 +5,13 @@
   "outputDirectory": "artifacts/elibrary/dist/public",
 
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "VITE_API_BASE_URL": "https://e-library-2c03.onrender.com"
   },
 
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://e-library-2c03.onrender.com/api/:path*"
-    },
-    {
-      "source": "/uploads/:path*",
-      "destination": "https://e-library-2c03.onrender.com/uploads/:path*"
-    },
-    {
-      "source": "/((?!api|uploads|assets|.*\\.).*)",
+      "source": "/((?!assets|.*\\.).*)",
       "destination": "/index.html"
     }
   ]
