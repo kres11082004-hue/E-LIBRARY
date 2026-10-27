@@ -9,7 +9,7 @@
  */
 import { logger } from "./logger.js";
 
-function getClient() {
+async function getClient() {
   const sid  = process.env.TWILIO_ACCOUNT_SID;
   const auth = process.env.TWILIO_AUTH_TOKEN;
   if (!sid || !auth) return null;
