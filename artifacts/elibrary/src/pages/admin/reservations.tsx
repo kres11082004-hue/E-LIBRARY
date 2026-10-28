@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  CalendarCheck, Clock, CheckCircle, XCircle, BookOpen, User, Search, Filter, CheckCircle2, Hash,
+  CalendarCheck, Clock, CheckCircle, XCircle, BookOpen, User, Search, Filter, CheckCircle2, Hash, Camera, Calendar,
 } from "lucide-react";
 
 type ReservationStatus = "pending" | "ready" | "fulfilled" | "cancelled" | "returned";
@@ -218,6 +218,25 @@ export default function AdminReservationsPage() {
                     )}
                     <span>{new Date(r.reservedAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}</span>
                   </div>
+                  {/* Visit schedule */}
+                  {((r as any).visitDate || (r as any).visitTime) && (
+                    <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 font-medium">
+                      <Camera className="w-3.5 h-3.5 shrink-0" />
+                      <span>Visit:</span>
+                      {(r as any).visitDate && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date((r as any).visitDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      )}
+                      {(r as any).visitTime && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {(r as any).visitTime}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {r.notes && (
                     <p className="text-xs text-muted-foreground mt-1 italic">"{r.notes}"</p>
                   )}

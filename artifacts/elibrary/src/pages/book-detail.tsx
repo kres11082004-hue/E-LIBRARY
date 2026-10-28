@@ -13,13 +13,31 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import {
   BookOpen, ArrowLeft, BookMarked, BookmarkX, Calendar, Hash,
-  Building, BookText, Clock, CheckCircle, XCircle, CalendarCheck, Download,
+  Building, BookText, Clock, CheckCircle, XCircle, CalendarCheck, Download, Camera,
 } from "lucide-react";
 import { triggerBookDownload } from "@/lib/download-helper";
+
+// ── Time slot options (library operating hours) ──────────────────────────────
+const TIME_SLOTS = [
+  "07:00 AM", "07:30 AM",
+  "08:00 AM", "08:30 AM",
+  "09:00 AM", "09:30 AM",
+  "10:00 AM", "10:30 AM",
+  "11:00 AM", "11:30 AM",
+  "12:00 PM", "12:30 PM",
+  "01:00 PM", "01:30 PM",
+  "02:00 PM", "02:30 PM",
+  "03:00 PM", "03:30 PM",
+  "04:00 PM", "04:30 PM",
+  "05:00 PM",
+];
 
 export default function BookDetailPage() {
   const [, params] = useRoute("/books/:id");
@@ -39,22 +57,30 @@ export default function BookDetailPage() {
 
   const [imgError, setImgError] = useState(false);
 
+  // Reservation scheduling dialog state
+  const [showReserveDialog, setShowReserveDialog] = useState(false);
+  const [visitDate, setVisitDate] = useState(() => {
+    return new Date().toISOString().split("T")[0]; // default: today
+  });
+  const [visitTime, setVisitTime] = useState("09:00 AM");
+  const [notes, setNotes] = useState("");
+
   const inMyList = myList.some(item => item.bookId === id);
 
   // Find user's reservation for this book
   const myReservation = reservations.find(
     r => r.bookId === id && r.userId === user?.id
   );
-  
+
   const getReservationStatus = () => {
     if (!myReservation) return null;
     switch (myReservation.status) {
       case "pending":
-        return { label: "Borrow Request Pending", color: "text-amber-600 border-amber-200 bg-amber-50", Icon: Clock };
+        return { label: "Visit Request Pending", color: "text-amber-600 border-amber-200 bg-amber-50", Icon: Clock };
       case "ready":
-        return { label: "Approved for Pickup", color: "text-blue-600 border-blue-200 bg-blue-50", Icon: CheckCircle };
+        return { label: "Approved — Ready for Visit", color: "text-blue-600 border-blue-200 bg-blue-50", Icon: CheckCircle };
       case "fulfilled":
-        return { label: "Currently Borrowed", color: "text-green-600 border-green-200 bg-green-50", Icon: CheckCircle };
+        return { label: "Visit Completed", color: "text-green-600 border-green-200 bg-green-50", Icon: CheckCircle };
       case "cancelled":
         return { label: "Request Cancelled", color: "text-muted-foreground bg-muted border-border", Icon: XCircle };
       default:
@@ -64,6 +90,9 @@ export default function BookDetailPage() {
 
   const reservationStatus = getReservationStatus();
   const hasActiveReservation = myReservation && (myReservation.status === "pending" || myReservation.status === "ready");
+
+  // Minimum date: today (students may visit same-day)
+  const minDate = new Date().toISOString().split("T")[0];
 
   const handleToggleList = async () => {
     try {
@@ -80,13 +109,26 @@ export default function BookDetailPage() {
     }
   };
 
-  const handleReserve = async () => {
+  const handleReserveSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      await createReservation.mutateAsync({ data: { bookId: id } });
-      toast({ title: "Borrow request submitted!", description: "Check status in your profile." });
+      await createReservation.mutateAsync({
+        data: {
+          bookId: id,
+          notes: notes || undefined,
+          visitDate,
+          visitTime,
+        } as any,
+      });
+      toast({
+        title: "Visit request submitted!",
+        description: `Scheduled for ${new Date(visitDate).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })} at ${visitTime}.`,
+      });
       queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+      setShowReserveDialog(false);
+      setNotes("");
     } catch (err: any) {
-      toast({ title: err?.data?.error || "Could not request book", variant: "destructive" });
+      toast({ title: err?.data?.error || "Could not submit request", variant: "destructive" });
     }
   };
 
@@ -94,7 +136,7 @@ export default function BookDetailPage() {
     if (!myReservation) return;
     try {
       await cancelReservation.mutateAsync({ id: myReservation.id });
-      toast({ title: "Borrow request cancelled" });
+      toast({ title: "Visit request cancelled" });
       queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
     } catch {
       toast({ title: "Could not cancel request", variant: "destructive" });
@@ -230,10 +272,13 @@ export default function BookDetailPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">{book.description}</p>
           </div>
 
-          {/* Physical Availability + Borrow Request */}
+          {/* Physical Availability + Visit Request */}
           {book.isAvailablePhysical && (
             <div className="bg-card border rounded-xl p-4 space-y-4">
-              <h3 className="font-semibold text-sm text-foreground">Physical Copy Availability</h3>
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm text-foreground">Physical Copy — Library Visit</h3>
+              </div>
 
               <div className="flex items-center gap-4">
                 <div className="text-center">
@@ -253,21 +298,28 @@ export default function BookDetailPage() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {(book.availableCopies ?? 0) > 0 ? "Available for borrowing" : "All copies are currently borrowed"}
+                    {(book.availableCopies ?? 0) > 0 ? "Available for visit" : "All copies currently in use"}
                   </p>
                 </div>
               </div>
 
+              {/* Current reservation status */}
               {reservationStatus && (
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border ${reservationStatus.color}`}>
-                  <reservationStatus.Icon className="w-4 h-4 shrink-0" />
+                <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-sm font-medium border ${reservationStatus.color}`}>
+                  <reservationStatus.Icon className="w-4 h-4 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold">{reservationStatus.label}</p>
+                    {myReservation?.status === "pending" && (myReservation as any).visitDate && (
+                      <p className="text-xs mt-0.5 opacity-80">
+                        Scheduled: {new Date((myReservation as any).visitDate).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}
+                        {" "}at {(myReservation as any).visitTime}
+                      </p>
+                    )}
                     {myReservation?.status === "ready" && (
-                      <p className="text-xs mt-0.5 font-medium">Please pick up from the library counter</p>
+                      <p className="text-xs mt-0.5 font-medium">Please visit the library at your scheduled time</p>
                     )}
                     {myReservation?.status === "pending" && (
-                      <p className="text-xs mt-0.5 opacity-80">Waiting for librarian approval</p>
+                      <p className="text-xs mt-0.5 opacity-70">Waiting for librarian approval</p>
                     )}
                   </div>
                 </div>
@@ -283,27 +335,125 @@ export default function BookDetailPage() {
                       disabled={cancelReservation.isPending}
                     >
                       <XCircle className="w-4 h-4" />
-                      Cancel Borrow Request
+                      Cancel Visit Request
                     </Button>
                   ) : myReservation?.status !== "fulfilled" && (
                     <Button
                       variant="outline"
                       className="w-full gap-2 border-primary text-primary hover:bg-primary/5"
-                      onClick={handleReserve}
-                      disabled={createReservation.isPending}
+                      onClick={() => setShowReserveDialog(true)}
                     >
                       <CalendarCheck className="w-4 h-4" />
-                      Reserve a Physical Copy
+                      Schedule a Library Visit
                     </Button>
                   )}
                 </>
               )}
 
-              <p className="text-xs text-muted-foreground">Visit {book.campus} library to borrow or collect reserved copies.</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Camera className="w-3 h-3" />
+                Visit {book.campus} library at your scheduled time to view and take pictures of this book.
+              </p>
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Reserve / Schedule Visit Dialog ───────────────────────────────── */}
+      <Dialog open={showReserveDialog} onOpenChange={setShowReserveDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="w-5 h-5 text-primary" />
+              Schedule Library Visit
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleReserveSubmit} className="space-y-5">
+            {/* Book reminder */}
+            <div className="flex items-center gap-3 bg-muted/40 rounded-xl p-3">
+              {book.coverUrl && (
+                <img src={book.coverUrl} alt={book.title} className="w-10 h-14 object-cover rounded-lg shrink-0" />
+              )}
+              <div className="min-w-0">
+                <p className="font-semibold text-sm text-foreground truncate">{book.title}</p>
+                <p className="text-xs text-muted-foreground">{book.author}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{book.campus}</p>
+              </div>
+            </div>
+
+            {/* Visit purpose note */}
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
+              <Camera className="w-4 h-4 shrink-0 mt-0.5" />
+              <p>You are scheduling a <strong>library visit</strong> to view and take pictures of this book. Choose a convenient date and time below.</p>
+            </div>
+
+            {/* Visit Date */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 font-semibold">
+                <Calendar className="w-4 h-4 text-primary" />
+                Visit Date <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="date"
+                value={visitDate}
+                onChange={e => setVisitDate(e.target.value)}
+                min={minDate}
+                required
+                className="h-11"
+              />
+              <p className="text-xs text-muted-foreground">Select the date you plan to visit the library.</p>
+            </div>
+
+            {/* Visit Time */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 font-semibold">
+                <Clock className="w-4 h-4 text-primary" />
+                Preferred Time <span className="text-destructive">*</span>
+              </Label>
+              <div className="grid grid-cols-4 gap-1.5 max-h-44 overflow-y-auto pr-1">
+                {TIME_SLOTS.map(slot => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => setVisitTime(slot)}
+                    className={`text-xs font-medium py-2 px-1 rounded-lg border transition-all ${
+                      visitTime === slot
+                        ? "bg-primary text-primary-foreground border-primary shadow-md"
+                        : "bg-background border-border hover:border-primary/50 hover:bg-primary/5"
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Selected: <strong>{visitTime}</strong></p>
+            </div>
+
+            {/* Optional note */}
+            <div className="space-y-2">
+              <Label className="font-semibold text-sm">Additional Note <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="e.g. I need to check Chapter 3 for my thesis..."
+                rows={2}
+                className="w-full text-sm border border-border rounded-lg px-3 py-2 resize-none bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowReserveDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="gap-2" disabled={createReservation.isPending}>
+                <CalendarCheck className="w-4 h-4" />
+                {createReservation.isPending ? "Submitting..." : "Confirm Visit"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

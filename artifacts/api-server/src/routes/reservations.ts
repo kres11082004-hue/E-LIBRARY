@@ -11,7 +11,9 @@ function fmt(r: any) {
   return {
     ...r,
     reservedAt: r.reservedAt instanceof Date ? r.reservedAt.toISOString() : r.reservedAt,
-    updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt,
+    updatedAt:  r.updatedAt  instanceof Date ? r.updatedAt.toISOString()  : r.updatedAt,
+    visitDate: r.visitDate ?? null,
+    visitTime: r.visitTime ?? null,
   };
 }
 
@@ -26,6 +28,8 @@ router.get("/reservations", requireAuth, async (req, res) => {
       bookId: reservationsTable.bookId,
       status: reservationsTable.status,
       notes: reservationsTable.notes,
+      visitDate: reservationsTable.visitDate,
+      visitTime: reservationsTable.visitTime,
       reservedAt: reservationsTable.reservedAt,
       updatedAt: reservationsTable.updatedAt,
       userName: usersTable.fullname,
@@ -47,7 +51,7 @@ router.get("/reservations", requireAuth, async (req, res) => {
 
 // POST /reservations — user reserves a physical copy
 router.post("/reservations", requireAuth, async (req, res) => {
-  const { bookId, notes } = req.body;
+  const { bookId, notes, visitDate, visitTime } = req.body;
   if (!bookId) return res.status(400).json({ error: "bookId is required" });
 
   // Check book has physical copies
@@ -76,6 +80,8 @@ router.post("/reservations", requireAuth, async (req, res) => {
     userId: req.user!.id,
     bookId,
     notes: notes || null,
+    visitDate: visitDate || null,
+    visitTime: visitTime || null,
     status: "pending",
   }).returning();
 
@@ -87,6 +93,8 @@ router.post("/reservations", requireAuth, async (req, res) => {
       bookId: reservationsTable.bookId,
       status: reservationsTable.status,
       notes: reservationsTable.notes,
+      visitDate: reservationsTable.visitDate,
+      visitTime: reservationsTable.visitTime,
       reservedAt: reservationsTable.reservedAt,
       updatedAt: reservationsTable.updatedAt,
       userName: usersTable.fullname,
