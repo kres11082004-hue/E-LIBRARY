@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, BookMarked, Sun, Moon, Type, Download, WifiOff,
   AlignLeft, Maximize2, Minimize2
 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import * as docx from "docx-preview";
 import { triggerBookDownload } from "@/lib/download-helper";
 import { PdfViewer } from "@/components/pdf-viewer";
@@ -40,6 +40,38 @@ type ThemeKey = keyof typeof THEMES;
 const FONT_SIZES = ["text-base", "text-lg", "text-xl"] as const;
 const FONT_LABELS = ["A−", "A", "A+"] as const;
 const LINE_HEIGHTS = ["leading-relaxed", "leading-loose"] as const;
+
+// ─── Page splitting helpers ───────────────────────────────────────────────────
+const WORDS_PER_PAGE = 800;
+
+function splitIntoPages(content: string): string[] {
+  // For HTML content, treat as single page (browser handles layout)
+  if (content.trim().startsWith("<")) return [content];
+  const paragraphs = content.split(/\n{2,}/).filter(Boolean);
+  const pages: string[] = [];
+  let currentPage: string[] = [];
+  let wordCount = 0;
+
+  for (const para of paragraphs) {
+    const words = para.trim().split(/\s+/).length;
+    // Chapter/section headings always start a new page (except first)
+    const isHeading = para.trim().startsWith("# ") || para.trim().startsWith("## ");
+    if (isHeading && currentPage.length > 0) {
+      pages.push(currentPage.join("\n\n"));
+      currentPage = [];
+      wordCount = 0;
+    }
+    currentPage.push(para);
+    wordCount += words;
+    if (wordCount >= WORDS_PER_PAGE) {
+      pages.push(currentPage.join("\n\n"));
+      currentPage = [];
+      wordCount = 0;
+    }
+  }
+  if (currentPage.length > 0) pages.push(currentPage.join("\n\n"));
+  return pages.length > 0 ? pages : [content];
+}
 
 // ─── Detect file type from URL ────────────────────────────────────────────────
 function getFileType(url: string): "pdf" | "epub" | "doc" | "text" | "external" | null {
@@ -152,6 +184,7 @@ export default function ReadPage() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [fullscreen, setFullscreen] = useState(false);
   const [cachedBook, setCachedBook] = useState<any>(null);
+  const [currentPageIdx, setCurrentPageIdx] = useState(0);
 
   // Track online/offline
   useEffect(() => {
@@ -405,6 +438,25 @@ export default function ReadPage() {
     `Even without internet access, you can read this material at any time. Enjoy your reading and research!`
   );
 
+  // Split content into pages
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const contentPages = useMemo(() => splitIntoPages(finalContent), [finalContent]);
+  const totalTextPages = contentPages.length;
+  const isHtmlContent = finalContent.trim().startsWith("<");
+
+  const goToPrevPage = () => {
+    if (currentPageIdx > 0) {
+      setCurrentPageIdx(p => p - 1);
+      contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+  const goToNextPage = () => {
+    if (currentPageIdx < totalTextPages - 1) {
+      setCurrentPageIdx(p => p + 1);
+      contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   const hasContent = true;
 
   return (
@@ -502,56 +554,113 @@ export default function ReadPage() {
         className="flex-1 overflow-y-auto"
         style={{ scrollBehavior: "smooth" }}
       >
-        <div className="max-w-4xl mx-auto px-6 py-10 pb-24">
-          {/* Book header */}
-          <div className="text-center mb-12">
-            {displayBook.coverUrl && (
-              <img src={displayBook.coverUrl} alt={displayBook.title} className="w-32 h-44 object-cover rounded-xl shadow-lg mx-auto mb-8" />
-            )}
-            <h1 className={`font-serif font-bold text-3xl md:text-4xl leading-tight mb-3 ${t.text}`}>{displayBook.title}</h1>
-            <p className={`text-lg ${t.text} opacity-60 mb-1`}>{displayBook.author}</p>
-            {displayBook.publishedYear && <p className={`text-sm ${t.text} opacity-40`}>{displayBook.publishedYear}</p>}
-            <div className={`mt-6 w-16 h-0.5 mx-auto ${theme === "dark" ? "bg-gray-700" : "bg-gray-300"}`} />
-          </div>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 pb-28">
+          {/* Book header — only on first page */}
+          {currentPageIdx === 0 && (
+            <div className="text-center mb-10">
+              {displayBook.coverUrl && (
+                <img src={displayBook.coverUrl} alt={displayBook.title} className="w-28 h-40 sm:w-32 sm:h-44 object-cover rounded-xl shadow-lg mx-auto mb-6" />
+              )}
+              <h1 className={`font-serif font-bold text-2xl sm:text-3xl md:text-4xl leading-tight mb-2 ${t.text}`}>{displayBook.title}</h1>
+              <p className={`text-base sm:text-lg ${t.text} opacity-60 mb-1`}>{displayBook.author}</p>
+              {displayBook.publishedYear && <p className={`text-sm ${t.text} opacity-40`}>{displayBook.publishedYear}</p>}
+              <div className={`mt-5 w-16 h-0.5 mx-auto ${theme === "dark" ? "bg-gray-700" : "bg-gray-300"}`} />
+            </div>
+          )}
 
           {/* Content */}
           <div className="space-y-2 w-full">
-            {finalContent.trim().startsWith("<") ? (
+            {isHtmlContent ? (
               <div className="flex justify-center w-full pb-12">
-                <div 
-                  className={`prose max-w-[816px] w-full bg-white text-black shadow-xl shadow-black/10 mx-auto px-10 py-16 sm:px-20 sm:py-24 border border-gray-200 [&>p]:mb-0 [&>img]:mx-auto [&>img]:my-6 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:p-2 [&_th]:border [&_th]:p-2`}
-                  style={{ minHeight: "1056px" }}
-                  dangerouslySetInnerHTML={{ __html: finalContent }} 
+                <div
+                  className={`prose w-full bg-white text-black shadow-xl shadow-black/10 mx-auto px-4 py-8 sm:px-10 sm:py-14 border border-gray-200 [&>p]:mb-0 [&>img]:mx-auto [&>img]:my-6 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:p-2 [&_th]:border [&_th]:p-2`}
+                  dangerouslySetInnerHTML={{ __html: contentPages[currentPageIdx] }}
                 />
               </div>
             ) : (
-              renderContent(finalContent, FONT_SIZES[fontIdx], LINE_HEIGHTS[lineHeight], t.text)
+              renderContent(contentPages[currentPageIdx], FONT_SIZES[fontIdx], LINE_HEIGHTS[lineHeight], t.text)
             )}
           </div>
 
-          {/* End of book */}
-          <div className={`mt-16 pt-8 border-t text-center ${theme === "dark" ? "border-gray-800" : "border-gray-200"}`}>
-            <div className="text-2xl mb-3">✦</div>
-            <p className={`font-serif text-lg italic ${t.text} opacity-50`}>End of book</p>
-            <p className={`text-sm ${t.text} opacity-30 mt-1`}>{displayBook.title} · {displayBook.author}</p>
-            <div className="flex justify-center gap-3 mt-6">
-              <Button variant="outline" onClick={() => setLocation("/books")} className={theme === "dark" ? "border-gray-700 text-gray-300 hover:bg-gray-800" : ""}>
-                Browse More Books
-              </Button>
-              <Button onClick={handleDownload} className="gap-2">
-                <Download className="w-4 h-4" /> Download
-              </Button>
+          {/* Page navigation (inline, below content) */}
+          {totalTextPages > 1 && (
+            <div className={`mt-10 pt-6 border-t flex items-center justify-between gap-3 ${theme === "dark" ? "border-gray-800" : "border-gray-200"}`}>
+              <button
+                onClick={goToPrevPage}
+                disabled={currentPageIdx === 0}
+                className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all disabled:opacity-30 ${
+                  theme === "dark"
+                    ? "bg-gray-800 text-gray-100 hover:bg-gray-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                ← Prev
+              </button>
+              <span className={`text-xs font-bold ${t.text} opacity-50`}>
+                Page {currentPageIdx + 1} of {totalTextPages}
+              </span>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPageIdx === totalTextPages - 1}
+                className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all disabled:opacity-30 ${
+                  theme === "dark"
+                    ? "bg-gray-800 text-gray-100 hover:bg-gray-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Next →
+              </button>
             </div>
-          </div>
+          )}
+
+          {/* End of book — only on last page */}
+          {currentPageIdx === totalTextPages - 1 && (
+            <div className={`mt-12 pt-8 border-t text-center ${theme === "dark" ? "border-gray-800" : "border-gray-200"}`}>
+              <div className="text-2xl mb-3">✦</div>
+              <p className={`font-serif text-lg italic ${t.text} opacity-50`}>End of book</p>
+              <p className={`text-sm ${t.text} opacity-30 mt-1`}>{displayBook.title} · {displayBook.author}</p>
+              <div className="flex justify-center gap-3 mt-6">
+                <Button variant="outline" onClick={() => setLocation("/books")} className={theme === "dark" ? "border-gray-700 text-gray-300 hover:bg-gray-800" : ""}>
+                  Browse More Books
+                </Button>
+                <Button onClick={handleDownload} className="gap-2">
+                  <Download className="w-4 h-4" /> Download
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom progress bar */}
+      {/* Bottom bar: page indicator + scroll progress */}
       <div
-        className={`fixed bottom-0 left-0 right-0 py-2 px-6 flex items-center gap-3 transition-opacity ${t.bg} ${theme === "dark" ? "border-gray-800" : "border-gray-100"} border-t ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`fixed bottom-0 left-0 right-0 py-2 px-3 sm:px-6 flex items-center gap-2 sm:gap-3 transition-opacity ${t.bg} ${theme === "dark" ? "border-gray-800" : "border-gray-100"} border-t ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         style={{ transition: "opacity 0.2s" }}
       >
-        <span className={`text-xs ${t.text} opacity-40 shrink-0`}>0%</span>
+        {/* Mobile prev/next buttons when multi-page text */}
+        {totalTextPages > 1 && (
+          <>
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPageIdx === 0}
+              className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-30 ${
+                theme === "dark" ? "bg-gray-800 text-gray-200" : "bg-gray-100 text-gray-700"
+              }`}
+            >←</button>
+            <span className={`text-xs font-semibold ${t.text} opacity-60 shrink-0 whitespace-nowrap`}>
+              {currentPageIdx + 1}/{totalTextPages}
+            </span>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPageIdx === totalTextPages - 1}
+              className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-30 ${
+                theme === "dark" ? "bg-gray-800 text-gray-200" : "bg-gray-100 text-gray-700"
+              }`}
+            >→</button>
+          </>
+        )}
+        {/* Scroll progress */}
+        <span className={`text-xs ${t.text} opacity-40 shrink-0 ${totalTextPages > 1 ? "hidden sm:inline" : ""}`}>0%</span>
         <div className={`flex-1 h-1.5 rounded-full ${theme === "dark" ? "bg-gray-800" : "bg-gray-200"}`}>
           <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progress}%` }} />
         </div>

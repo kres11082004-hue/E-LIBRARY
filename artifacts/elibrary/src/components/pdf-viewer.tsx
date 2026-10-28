@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from "lucide-react";
+import { ZoomIn, ZoomOut, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Lazy-load pdfjs-dist to avoid blocking initial app load
+// ─── Load PDF.js lazily ────────────────────────────────────────────────────────
+let pdfjsModule: any = null;
 async function loadPdfJs() {
+  if (pdfjsModule) return pdfjsModule;
   const pdfjs = await import("pdfjs-dist");
-  // Use the CDN worker so we don't need a build-time worker copy
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  pdfjsModule = pdfjs;
   return pdfjs;
 }
 
@@ -15,33 +17,175 @@ interface PdfViewerProps {
   title?: string;
 }
 
+// ─── Single page: canvas + text layer ─────────────────────────────────────────
+interface PageProps {
+  pdf: any;
+  pdfjs: any;
+  pageNum: number;
+  scale: number;
+  containerWidth: number;
+  onVisible: (n: number) => void;
+}
+
+function PdfPage({ pdf, pdfjs, pageNum, scale, containerWidth, onVisible }: PageProps) {
+  const wrapRef      = useRef<HTMLDivElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const textLayerRef = useRef<HTMLDivElement>(null);
+  const renderRef    = useRef<{ cancel: () => void } | null>(null);
+  const [inView, setInView] = useState(false);
+
+  // ── Intersection observer: mark visible + trigger render ──
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setInView(true);
+            onVisible(pageNum);
+          }
+        }
+      },
+      { rootMargin: "600px 0px", threshold: 0.01 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [pageNum, onVisible]);
+
+  // ── Render canvas + text layer when in view ──
+  useEffect(() => {
+    if (!inView || !pdf || !canvasRef.current || !textLayerRef.current) return;
+
+    // Cancel previous render
+    renderRef.current?.cancel();
+    renderRef.current = null;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const page = await pdf.getPage(pageNum);
+        if (cancelled) return;
+
+        const deviceRatio = window.devicePixelRatio || 1;
+        const usableWidth = Math.max((containerWidth || 360) - 24, 100);
+        const naturalVp   = page.getViewport({ scale: 1.0 });
+        const fitScale    = usableWidth / naturalVp.width;
+        const actualScale = fitScale * scale;
+        const vp          = page.getViewport({ scale: actualScale });
+
+        // ── Canvas ──────────────────────────────────────────────
+        const canvas = canvasRef.current!;
+        canvas.width  = Math.floor(vp.width  * deviceRatio);
+        canvas.height = Math.floor(vp.height * deviceRatio);
+        canvas.style.width  = `${vp.width}px`;
+        canvas.style.height = `${vp.height}px`;
+
+        const ctx = canvas.getContext("2d")!;
+        ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
+
+        const renderTask = page.render({ canvasContext: ctx, viewport: vp });
+        renderRef.current = renderTask;
+        await renderTask.promise;
+        if (cancelled) return;
+
+        // ── Text layer ──────────────────────────────────────────
+        const textLayer = textLayerRef.current!;
+        textLayer.innerHTML = "";                       // clear previous
+        textLayer.style.width  = `${vp.width}px`;
+        textLayer.style.height = `${vp.height}px`;
+
+        const textContent = await page.getTextContent();
+        if (cancelled) return;
+
+        // pdfjs v6+ API
+        if (pdfjs.renderTextLayer) {
+          pdfjs.renderTextLayer({
+            textContentSource: textContent,
+            container: textLayer,
+            viewport: vp,
+            textDivs: [],
+          });
+        }
+      } catch (err: any) {
+        if (err?.name !== "RenderingCancelledException") {
+          console.error(`Page ${pageNum} render error:`, err);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      renderRef.current?.cancel();
+      renderRef.current = null;
+    };
+  }, [inView, pdf, pdfjs, pageNum, scale, containerWidth]);
+
+  return (
+    <div
+      ref={wrapRef}
+      data-page={pageNum}
+      className="flex justify-center mb-3"
+    >
+      {/* Wrapper keeps canvas + text layer stacked */}
+      <div className="relative shadow-xl rounded overflow-hidden bg-white"
+           style={{ display: "inline-block", maxWidth: "100%" }}>
+        <canvas
+          ref={canvasRef}
+          style={{ display: "block", maxWidth: "100%" }}
+        />
+        {/* Text layer sits over canvas — transparent but selectable */}
+        <div
+          ref={textLayerRef}
+          className="pdf-text-layer"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            pointerEvents: "auto",
+            userSelect: "text",
+            WebkitUserSelect: "text",
+            overflow: "hidden",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main viewer ───────────────────────────────────────────────────────────────
 export function PdfViewer({ fileUrl, title }: PdfViewerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const [pdf, setPdf] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [scale, setScale] = useState(1.0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [rendering, setRendering] = useState(false);
+  const [pdfjs, setPdfjs]               = useState<any>(null);
+  const [pdf, setPdf]                   = useState<any>(null);
+  const [totalPages, setTotalPages]     = useState(0);
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [scale, setScale]               = useState(1.0);
+  const [containerWidth, setContainerWidth] = useState(360);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState<string | null>(null);
 
-  // Load the PDF document once
+  // Load PDF
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setPdf(null);
+    setTotalPages(0);
+    setCurrentPage(1);
 
     (async () => {
       try {
-        const pdfjs = await loadPdfJs();
-        const doc = await pdfjs.getDocument({ url: fileUrl, withCredentials: false }).promise;
+        const lib = await loadPdfJs();
+        if (cancelled) return;
+        setPdfjs(lib);
+
+        const doc = await lib.getDocument({ url: fileUrl, withCredentials: false }).promise;
         if (cancelled) return;
         setPdf(doc);
         setTotalPages(doc.numPages);
-        setCurrentPage(1);
         setLoading(false);
       } catch (err: any) {
         if (!cancelled) {
@@ -55,54 +199,30 @@ export function PdfViewer({ fileUrl, title }: PdfViewerProps) {
     return () => { cancelled = true; };
   }, [fileUrl]);
 
-  // Render the current page whenever pdf/page/scale changes
-  const renderPage = useCallback(async () => {
-    if (!pdf || !canvasRef.current) return;
+  // Track container width for responsive scaling
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width || 360);
+    });
+    ro.observe(el);
+    setContainerWidth(el.clientWidth || 360);
+    return () => ro.disconnect();
+  }, [loading]);
 
-    // Cancel any in-flight render
-    if (renderTaskRef.current) {
-      renderTaskRef.current.cancel();
-      renderTaskRef.current = null;
-    }
+  const handlePageVisible = useCallback((n: number) => setCurrentPage(n), []);
 
-    setRendering(true);
-    try {
-      const page = await pdf.getPage(currentPage);
-      const deviceRatio = window.devicePixelRatio || 1;
+  const scrollToPage = (n: number) => {
+    const clamped = Math.max(1, Math.min(n, totalPages));
+    const el = scrollRef.current?.querySelector(`[data-page="${clamped}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setCurrentPage(clamped);
+  };
 
-      // Auto-fit to container width on first render / when scale resets
-      const containerWidth = containerRef.current?.clientWidth || 360;
-      const viewport = page.getViewport({ scale });
-      const fitScale = containerWidth / viewport.width;
-      const actualScale = scale === 1.0 ? fitScale : scale;
-      const finalViewport = page.getViewport({ scale: actualScale });
-
-      const canvas = canvasRef.current;
-      canvas.width = finalViewport.width * deviceRatio;
-      canvas.height = finalViewport.height * deviceRatio;
-      canvas.style.width = `${finalViewport.width}px`;
-      canvas.style.height = `${finalViewport.height}px`;
-
-      const ctx = canvas.getContext("2d")!;
-      ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
-
-      const task = page.render({ canvasContext: ctx, viewport: finalViewport });
-      renderTaskRef.current = task;
-      await task.promise;
-    } catch (err: any) {
-      if (err?.name !== "RenderingCancelledException") {
-        console.error("Render error:", err);
-      }
-    } finally {
-      setRendering(false);
-    }
-  }, [pdf, currentPage, scale]);
-
-  useEffect(() => { renderPage(); }, [renderPage]);
-
-  const goTo = (n: number) => setCurrentPage(Math.max(1, Math.min(n, totalPages)));
-  const zoomIn = () => setScale(s => Math.min(s + 0.25, 3));
-  const zoomOut = () => setScale(s => Math.max(s - 0.25, 0.5));
+  const zoomIn    = () => setScale(s => Math.min(+(s + 0.25).toFixed(2), 3.0));
+  const zoomOut   = () => setScale(s => Math.max(+(s - 0.25).toFixed(2), 0.25));
+  const resetZoom = () => setScale(1.0);
 
   if (loading) {
     return (
@@ -132,66 +252,76 @@ export function PdfViewer({ fileUrl, title }: PdfViewerProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* PDF toolbar */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-100 border-b flex-wrap">
+      {/* ── Toolbar ─────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-2 px-2 py-2 bg-gray-100 border-b shrink-0">
         {/* Page nav */}
-        <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => goTo(currentPage - 1)} disabled={currentPage <= 1}>
-            <ChevronLeft className="w-4 h-4" />
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0"
+            onClick={() => scrollToPage(currentPage - 1)} disabled={currentPage <= 1}>
+            <ChevronUp className="w-4 h-4" />
           </Button>
-          <span className="text-xs font-semibold px-2 bg-white border rounded h-8 flex items-center min-w-[72px] justify-center">
+          <span className="text-xs font-semibold px-1.5 bg-white border rounded h-8 flex items-center min-w-[64px] justify-center whitespace-nowrap">
             {currentPage} / {totalPages}
           </span>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => goTo(currentPage + 1)} disabled={currentPage >= totalPages}>
-            <ChevronRight className="w-4 h-4" />
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0"
+            onClick={() => scrollToPage(currentPage + 1)} disabled={currentPage >= totalPages}>
+            <ChevronDown className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Zoom */}
-        <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={zoomOut} disabled={scale <= 0.5}>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0"
+            onClick={zoomOut} disabled={scale <= 0.25}>
             <ZoomOut className="w-3.5 h-3.5" />
           </Button>
-          <span className="text-xs font-medium min-w-[44px] text-center">{Math.round(scale * 100)}%</span>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={zoomIn} disabled={scale >= 3}>
+          <button onClick={resetZoom}
+            className="text-xs font-medium min-w-[40px] text-center hover:underline"
+            title="Reset to fit width">
+            {scale === 1.0 ? "Fit" : `${Math.round(scale * 100)}%`}
+          </button>
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0"
+            onClick={zoomIn} disabled={scale >= 3}>
             <ZoomIn className="w-3.5 h-3.5" />
           </Button>
         </div>
 
         {/* Download */}
-        <a
-          href={fileUrl}
-          download={title || "document.pdf"}
-          className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
-        >
-          <Download className="w-3 h-3" /> Save
+        <a href={fileUrl} download={title || "document.pdf"}
+          className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 shrink-0">
+          <Download className="w-3 h-3" />
+          <span className="hidden sm:inline">Save</span>
         </a>
       </div>
 
-      {/* Canvas scroll area */}
-      <div ref={containerRef} className="flex-1 overflow-auto bg-gray-200 flex justify-center py-4 px-2">
-        <div className="relative">
-          {rendering && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
-          <canvas
-            ref={canvasRef}
-            className="shadow-xl rounded"
-            style={{ display: "block", maxWidth: "100%" }}
+      {/* ── Continuous scroll ────────────────────────────────── */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-gray-300 px-2 pt-3 pb-4">
+        {pdf && pdfjs && Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+          <PdfPage
+            key={`${fileUrl}-p${n}`}
+            pdf={pdf}
+            pdfjs={pdfjs}
+            pageNum={n}
+            scale={scale}
+            containerWidth={containerWidth}
+            onVisible={handlePageVisible}
           />
-        </div>
+        ))}
       </div>
 
-      {/* Mobile swipe hint */}
+      {/* ── Mobile bottom nav ────────────────────────────────── */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-3 py-3 bg-gray-100 border-t sm:hidden">
-          <Button size="sm" variant="outline" className="flex-1 max-w-[120px]" onClick={() => goTo(currentPage - 1)} disabled={currentPage <= 1}>
-            ← Prev
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-white border-t sm:hidden shrink-0">
+          <Button size="sm" variant="outline" className="flex-1 h-10 text-sm font-semibold"
+            onClick={() => scrollToPage(currentPage - 1)} disabled={currentPage <= 1}>
+            <ChevronUp className="w-4 h-4 mr-1" /> Prev
           </Button>
-          <Button size="sm" variant="outline" className="flex-1 max-w-[120px]" onClick={() => goTo(currentPage + 1)} disabled={currentPage >= totalPages}>
-            Next →
+          <span className="text-xs font-bold text-muted-foreground shrink-0">
+            {currentPage} / {totalPages}
+          </span>
+          <Button size="sm" variant="outline" className="flex-1 h-10 text-sm font-semibold"
+            onClick={() => scrollToPage(currentPage + 1)} disabled={currentPage >= totalPages}>
+            Next <ChevronDown className="w-4 h-4 ml-1" />
           </Button>
         </div>
       )}

@@ -178,3 +178,34 @@
   list-style: revert;
 }
 
+/* ── PDF.js text layer ─────────────────────────────────────────────────────── */
+/* Makes PDF text selectable + copyable while keeping canvas as the visual.    */
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.pdf-text-layer span,
+.pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+/* Selection highlight color */
+.pdf-text-layer ::selection {
+  background: rgba(59, 130, 246, 0.35);
+}
+.pdf-text-layer ::-moz-selection {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+/* Browser find-in-page highlight */
+.pdf-text-layer .highlight {
+  background-color: rgba(251, 191, 36, 0.4);
+  border-radius: 2px;
+}

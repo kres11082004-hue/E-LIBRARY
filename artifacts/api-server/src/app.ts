@@ -16,24 +16,27 @@ if (!isVercel) {
 }
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:19545",
   "https://e-library-nine-chi.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Allow all in production for now; tighten later
+    // Allow any localhost/127.0.0.1 port (Vite dev server port can vary)
+    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
     }
+    if (allowedOrigins.some(o => origin.startsWith(o))) {
+      return callback(null, true);
+    }
+    callback(null, true); // Allow all for now; tighten in production
   },
   credentials: true,
 }));
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Large limit needed: base64 encoding inflates file size by ~33%.
+// A 50 MB PDF becomes ~67 MB in base64, so we need at least 70 MB.
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 
 app.use("/api", router);
 app.use(router);
