@@ -7,7 +7,11 @@ let pdfjsModule: any = null;
 async function loadPdfJs() {
   if (pdfjsModule) return pdfjsModule;
   const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  // Use the bundled worker from pdfjs-dist (avoids CDN version mismatch)
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString();
   pdfjsModule = pdfjs;
   return pdfjs;
 }
@@ -32,6 +36,7 @@ function PdfPage({ pdf, pdfjs, pageNum, scale, containerWidth, onVisible }: Page
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const renderRef    = useRef<{ cancel: () => void } | null>(null);
+  const textLayerInstance = useRef<any>(null);
   const [inView, setInView] = useState(false);
 
   // ── Intersection observer: mark visible + trigger render ──
@@ -60,6 +65,11 @@ function PdfPage({ pdf, pdfjs, pageNum, scale, containerWidth, onVisible }: Page
     // Cancel previous render
     renderRef.current?.cancel();
     renderRef.current = null;
+    // Cancel previous text layer
+    if (textLayerInstance.current) {
+      try { textLayerInstance.current.cancel(); } catch { /* ignore */ }
+      textLayerInstance.current = null;
+    }
 
     let cancelled = false;
 
@@ -90,17 +100,25 @@ function PdfPage({ pdf, pdfjs, pageNum, scale, containerWidth, onVisible }: Page
         await renderTask.promise;
         if (cancelled) return;
 
-        // ── Text layer ──────────────────────────────────────────
+        // ── Text layer (pdfjs-dist v6 API) ──────────────────────
         const textLayer = textLayerRef.current!;
-        textLayer.innerHTML = "";                       // clear previous
+        textLayer.innerHTML = "";
         textLayer.style.width  = `${vp.width}px`;
         textLayer.style.height = `${vp.height}px`;
 
-        const textContent = await page.getTextContent();
-        if (cancelled) return;
-
-        // pdfjs v6+ API
-        if (pdfjs.renderTextLayer) {
+        // pdfjs-dist v6 uses a TextLayer class
+        if (pdfjs.TextLayer) {
+          const tl = new pdfjs.TextLayer({
+            textContentSource: page.streamTextContent({ includeMarkedContent: true }),
+            container: textLayer,
+            viewport: vp,
+          });
+          textLayerInstance.current = tl;
+          await tl.render();
+        } else if (pdfjs.renderTextLayer) {
+          // Fallback for older pdfjs builds
+          const textContent = await page.getTextContent();
+          if (cancelled) return;
           pdfjs.renderTextLayer({
             textContentSource: textContent,
             container: textLayer,
@@ -109,7 +127,7 @@ function PdfPage({ pdf, pdfjs, pageNum, scale, containerWidth, onVisible }: Page
           });
         }
       } catch (err: any) {
-        if (err?.name !== "RenderingCancelledException") {
+        if (err?.name !== "RenderingCancelledException" && err?.name !== "AbortException") {
           console.error(`Page ${pageNum} render error:`, err);
         }
       }
@@ -119,6 +137,10 @@ function PdfPage({ pdf, pdfjs, pageNum, scale, containerWidth, onVisible }: Page
       cancelled = true;
       renderRef.current?.cancel();
       renderRef.current = null;
+      if (textLayerInstance.current) {
+        try { textLayerInstance.current.cancel(); } catch { /* ignore */ }
+        textLayerInstance.current = null;
+      }
     };
   }, [inView, pdf, pdfjs, pageNum, scale, containerWidth]);
 

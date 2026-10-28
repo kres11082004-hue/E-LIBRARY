@@ -178,15 +178,19 @@
   list-style: revert;
 }
 
-/* ── PDF.js text layer ─────────────────────────────────────────────────────── */
+/* ── PDF.js text layer (v6 compatible) ─────────────────────────────────────── */
 /* Makes PDF text selectable + copyable while keeping canvas as the visual.    */
 .pdf-text-layer {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  opacity: 1;
   line-height: 1;
+  /* v6 uses --scale-factor CSS variable for span sizing */
+  --scale-factor: 1;
 }
 
+/* All text spans are transparent overlays positioned via transform */
 .pdf-text-layer span,
 .pdf-text-layer br {
   color: transparent;
@@ -194,18 +198,54 @@
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
+  /* Prevent Tailwind reset from breaking font-size scaling */
+  font-size: calc(var(--font-size, 1em) * var(--scale-factor, 1));
+}
+
+/* Highlight span used by pdfjs for find-in-page / selection */
+.pdf-text-layer .highlight {
+  margin: -1px;
+  padding: 1px;
+  background-color: rgba(251, 191, 36, 0.4);
+  border-radius: 2px;
+}
+
+.pdf-text-layer .highlight.appended {
+  position: initial;
+}
+
+.pdf-text-layer .highlight.begin {
+  border-radius: 3px 0 0 3px;
+}
+
+.pdf-text-layer .highlight.end {
+  border-radius: 0 3px 3px 0;
+}
+
+.pdf-text-layer .highlight.middle {
+  border-radius: 0;
+}
+
+.pdf-text-layer .highlight.selected {
+  background-color: rgba(0, 100, 255, 0.25);
 }
 
 /* Selection highlight color */
 .pdf-text-layer ::selection {
   background: rgba(59, 130, 246, 0.35);
+  color: transparent;
 }
 .pdf-text-layer ::-moz-selection {
   background: rgba(59, 130, 246, 0.35);
+  color: transparent;
 }
 
-/* Browser find-in-page highlight */
-.pdf-text-layer .highlight {
-  background-color: rgba(251, 191, 36, 0.4);
-  border-radius: 2px;
+/* endOfContent marker — must be hidden */
+.pdf-text-layer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: -1;
+  cursor: default;
+  user-select: none;
 }
