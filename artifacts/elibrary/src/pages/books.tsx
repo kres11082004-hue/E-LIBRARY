@@ -135,7 +135,7 @@ export default function BooksPage() {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       <BackButton />
 
       {/* Header */}
@@ -280,7 +280,7 @@ export default function BooksPage() {
       {departmentFilter && (
         <>
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -293,7 +293,7 @@ export default function BooksPage() {
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-44">
+                <SelectTrigger className="flex-1 sm:w-44">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -336,27 +336,27 @@ export default function BooksPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-2">
-                  <p className="text-xs text-muted-foreground">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2">
+                  <p className="text-xs text-muted-foreground order-2 sm:order-1">
                     Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, books.length)} of {books.length} books
                   </p>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 order-1 sm:order-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-9 w-9 p-0"
                       onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                       disabled={page === 1}
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <span className="text-xs font-medium px-2 min-w-[60px] text-center">
+                    <span className="text-sm font-semibold px-3 min-w-[80px] text-center bg-muted rounded-lg h-9 flex items-center justify-center">
                       {page} / {totalPages}
                     </span>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-9 w-9 p-0"
                       onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                       disabled={page === totalPages}
                     >

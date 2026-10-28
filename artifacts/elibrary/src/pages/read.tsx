@@ -4,13 +4,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import {
-  ArrowLeft, BookMarked, Sun, Moon, Type, Download, WifiOff,
+import { ArrowLeft, BookMarked, Sun, Moon, Type, Download, WifiOff,
   AlignLeft, Maximize2, Minimize2
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import * as docx from "docx-preview";
 import { triggerBookDownload } from "@/lib/download-helper";
+import { PdfViewer } from "@/components/pdf-viewer";
 
 // ─── Offline cache helpers ────────────────────────────────────────────────────
 function cacheBook(id: number, data: unknown) {
@@ -253,53 +253,36 @@ export default function ReadPage() {
   const hasDocFile = fileType === "doc";
   const hasExternalLink = fileType === "external";
 
-  // For PDF: show inline PDF viewer
+  // For PDF: show inline PDF.js viewer (works on all devices including mobile)
   if (hasPdfFile) {
+    // Build absolute URL so pdfjs can fetch it cross-origin from Render
+    const absolutePdfUrl = displayBook.fileUrl?.startsWith("http")
+      ? displayBook.fileUrl
+      : `${import.meta.env.VITE_API_BASE_URL || ""}${displayBook.fileUrl}`;
+
     return (
-      <div className={`flex flex-col ${fullscreen ? "fixed inset-0 z-50" : "h-full min-h-screen"} bg-gray-100 transition-colors duration-300`}>
+      <div className="flex flex-col h-screen bg-gray-100">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b bg-white shadow-sm z-40 sticky top-0">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center justify-between px-3 py-2.5 border-b bg-white shadow-sm z-40 sticky top-0">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setLocation(`/books/${id}`)}
-              className="flex items-center gap-1.5 text-sm font-medium shrink-0 text-gray-700 opacity-70 hover:opacity-100 transition-opacity"
+              className="flex items-center gap-1 text-sm font-medium shrink-0 text-gray-700 hover:text-gray-900 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
-            <div className="hidden sm:block h-4 w-px bg-gray-300" />
+            <div className="h-4 w-px bg-gray-300 hidden sm:block" />
             <div className="min-w-0 hidden sm:block">
               <p className="text-sm font-semibold truncate text-gray-900">{displayBook.title}</p>
               <p className="text-xs truncate text-gray-500">{displayBook.author}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full">📄 PDF Viewer</span>
-            <a
-              href={displayBook.fileUrl}
-              download
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-            >
-              <Download className="w-3.5 h-3.5" /> Download PDF
-            </a>
-            <button
-              onClick={() => setFullscreen(f => !f)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 opacity-70 hover:opacity-100 hover:bg-gray-100 transition-all"
-              title="Fullscreen"
-            >
-              {fullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
-          </div>
+          <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full shrink-0">📄 PDF</span>
         </div>
 
-        {/* PDF iframe viewer */}
-        <div className="flex-1 w-full">
-          <iframe
-            src={`${displayBook.fileUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-            className="w-full h-full"
-            style={{ minHeight: "calc(100vh - 56px)", border: "none" }}
-            title={displayBook.title}
-            allow="fullscreen"
-          />
+        {/* PDF viewer fills remaining screen */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <PdfViewer fileUrl={absolutePdfUrl} title={displayBook.title} />
         </div>
       </div>
     );
