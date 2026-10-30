@@ -1,12 +1,15 @@
 import { Router } from "express";
 import { db, usersTable, booksTable, borrowRecordsTable, activityLogTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 
 const router = Router();
 
 // GET /monitoring/stats
 router.get("/monitoring/stats", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const users = await db.select().from(usersTable);
+  const allUsers = await db.select().from(usersTable).where(eq(usersTable.isApproved, true));
+  // Registered users = students + instructors (excludes admin/librarian system accounts)
+  const users = allUsers.filter(u => u.role === "student" || u.role === "instructor");
   const books = await db.select().from(booksTable);
   const borrows = await db.select().from(borrowRecordsTable);
 
@@ -27,7 +30,7 @@ router.get("/monitoring/stats", requireAuth, requireRole("admin", "librarian"), 
 
 // GET /monitoring/by-campus
 router.get("/monitoring/by-campus", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(eq(usersTable.isApproved, true));
   const borrows = await db.select().from(borrowRecordsTable);
 
   const campusMap = new Map<string, { students: number; instructors: number; totalUsers: number; activeBorrows: number }>();
@@ -64,7 +67,7 @@ function getDepartmentForCourse(courseRaw?: string | null): string {
 
 // GET /monitoring/by-department
 router.get("/monitoring/by-department", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(eq(usersTable.isApproved, true));
   const borrows = await db.select().from(borrowRecordsTable);
 
   const deptMap = new Map<string, { department: string; students: number; instructors: number; totalUsers: number; activeBorrows: number }>();
@@ -95,7 +98,7 @@ router.get("/monitoring/by-department", requireAuth, requireRole("admin", "libra
 
 // GET /monitoring/by-course
 router.get("/monitoring/by-course", requireAuth, requireRole("admin", "librarian"), async (req, res) => {
-  const students = await db.select().from(usersTable);
+  const students = await db.select().from(usersTable).where(eq(usersTable.isApproved, true));
   const borrows = await db.select().from(borrowRecordsTable);
 
   const courseMap = new Map<string, { course: string; department: string; year: string; section: string; campus: string; studentCount: number; activeBorrows: number }>();
