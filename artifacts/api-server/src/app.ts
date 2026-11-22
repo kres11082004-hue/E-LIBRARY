@@ -11,8 +11,17 @@ const isVercel = process.env.VERCEL === "1" || Boolean(process.env.NOW_BUILDER);
 
 if (!isVercel) {
   app.use(pinoHttp({ logger }));
-  const uploadsPath = path.resolve(process.cwd(), "uploads");
-  app.use("/uploads", express.static(uploadsPath));
+  const uploadsPaths = [
+    path.resolve(process.cwd(), "uploads"),
+    path.resolve(process.cwd(), "artifacts/api-server/uploads"),
+    path.resolve(process.cwd(), "../uploads"),
+    path.resolve(process.cwd(), "../../uploads"),
+  ];
+  for (const p of uploadsPaths) {
+    app.use("/uploads", express.static(p));
+  }
+} else {
+  app.use("/uploads", express.static("/tmp/uploads"));
 }
 
 const allowedOrigins = [

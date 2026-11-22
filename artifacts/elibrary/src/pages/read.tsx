@@ -185,6 +185,7 @@ export default function ReadPage() {
   const [fullscreen, setFullscreen] = useState(false);
   const [cachedBook, setCachedBook] = useState<any>(null);
   const [currentPageIdx, setCurrentPageIdx] = useState(0);
+  const [viewMode, setViewMode] = useState<"pdf" | "text">("pdf");
 
   // Track online/offline
   useEffect(() => {
@@ -287,7 +288,7 @@ export default function ReadPage() {
   const hasExternalLink = fileType === "external";
 
   // For PDF: show inline PDF.js viewer (works on all devices including mobile)
-  if (hasPdfFile) {
+  if (hasPdfFile && viewMode === "pdf") {
     // Build absolute URL so pdfjs can fetch it cross-origin from Render
     const absolutePdfUrl = displayBook.fileUrl?.startsWith("http")
       ? displayBook.fileUrl
@@ -310,12 +311,35 @@ export default function ReadPage() {
               <p className="text-xs truncate text-gray-500">{displayBook.author}</p>
             </div>
           </div>
-          <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full shrink-0">📄 PDF</span>
+          <div className="flex items-center gap-2">
+            {displayBook.content && displayBook.content.trim().length > 0 && (
+              <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border text-xs">
+                <button
+                  onClick={() => setViewMode("pdf")}
+                  className="px-2.5 py-1 font-semibold rounded bg-white text-gray-900 shadow-xs"
+                >
+                  📄 PDF
+                </button>
+                <button
+                  onClick={() => setViewMode("text")}
+                  className="px-2.5 py-1 text-gray-600 hover:text-gray-900 font-medium rounded"
+                >
+                  📖 Reader
+                </button>
+              </div>
+            )}
+            <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full shrink-0">📄 PDF</span>
+          </div>
         </div>
 
         {/* PDF viewer fills remaining screen */}
         <div className="flex-1 overflow-hidden flex flex-col">
-          <PdfViewer fileUrl={absolutePdfUrl} title={displayBook.title} />
+          <PdfViewer
+            fileUrl={absolutePdfUrl}
+            title={displayBook.title}
+            onSwitchToText={() => setViewMode("text")}
+            hasExtractedText={!!(displayBook.content && displayBook.content.trim().length > 0)}
+          />
         </div>
       </div>
     );
@@ -487,6 +511,24 @@ export default function ReadPage() {
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Switch back to PDF view if available */}
+          {hasPdfFile && (
+            <div className={`flex items-center p-0.5 rounded-lg border text-xs mr-2 ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-gray-100 border-gray-300"}`}>
+              <button
+                onClick={() => setViewMode("pdf")}
+                className={`px-2.5 py-1 font-medium rounded transition-colors ${theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-600 hover:text-gray-900"}`}
+              >
+                📄 PDF
+              </button>
+              <button
+                onClick={() => setViewMode("text")}
+                className={`px-2.5 py-1 font-semibold rounded shadow-xs ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-gray-900"}`}
+              >
+                📖 Reader
+              </button>
+            </div>
+          )}
+
           {/* Offline indicator */}
           {isOffline && (
             <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full mr-1 ${theme === "dark" ? "bg-amber-900/50 text-amber-300" : "bg-amber-100 text-amber-700"}`}>

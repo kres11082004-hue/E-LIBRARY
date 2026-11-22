@@ -184,9 +184,15 @@ export default function AdminBooksPage() {
         setForm(f => ({ 
           ...f, 
           fileUrl: data.fileUrl,
-          content: data.extractedText || f.content 
+          content: data.extractedText || f.content,
+          availabilityType: f.availabilityType === "physical" ? "both" : (f.availabilityType || "online"),
         }));
-        toast({ title: "File uploaded!", description: "Book file saved successfully." });
+        toast({
+          title: "File uploaded!",
+          description: data.extractedText
+            ? "Book file saved and text content extracted successfully."
+            : "Book file saved successfully.",
+        });
         setUploadingFile(false);
       };
       reader.readAsDataURL(file);
@@ -978,6 +984,15 @@ export default function AdminBooksPage() {
                           />
                         </div>
                       </div>
+
+                      {form.fileUrl && (
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-green-50 border border-green-200 text-xs text-green-800">
+                          <span className="truncate max-w-[280px] font-mono">{form.fileUrl}</span>
+                          <span className="font-semibold shrink-0">
+                            {form.content ? "✓ File & Content Extracted" : "✓ File Attached"}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

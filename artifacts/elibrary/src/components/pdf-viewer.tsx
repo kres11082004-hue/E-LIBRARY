@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ZoomIn, ZoomOut, Download, ChevronUp, ChevronDown } from "lucide-react";
+import { ZoomIn, ZoomOut, Download, ChevronUp, ChevronDown, BookOpen, BookText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 // ─── Load PDF.js lazily ────────────────────────────────────────────────────────
 let pdfjsModule: any = null;
 async function loadPdfJs() {
   if (pdfjsModule) return pdfjsModule;
   const pdfjs = await import("pdfjs-dist");
-  // Use the bundled worker from pdfjs-dist (avoids CDN version mismatch)
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
+  try {
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+  } catch {
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  }
   pdfjsModule = pdfjs;
   return pdfjs;
 }
@@ -19,6 +20,8 @@ async function loadPdfJs() {
 interface PdfViewerProps {
   fileUrl: string;
   title?: string;
+  onSwitchToText?: () => void;
+  hasExtractedText?: boolean;
 }
 
 // ─── Single page: canvas + text layer ─────────────────────────────────────────
@@ -107,24 +110,27 @@ function PdfPage({ pdf, pdfjs, pageNum, scale, containerWidth, onVisible }: Page
         textLayer.style.height = `${vp.height}px`;
 
         // pdfjs-dist v6 uses a TextLayer class
-        if (pdfjs.TextLayer) {
-          const tl = new pdfjs.TextLayer({
-            textContentSource: page.streamTextContent({ includeMarkedContent: true }),
-            container: textLayer,
-            viewport: vp,
-          });
-          textLayerInstance.current = tl;
-          await tl.render();
-        } else if (pdfjs.renderTextLayer) {
-          // Fallback for older pdfjs builds
-          const textContent = await page.getTextContent();
-          if (cancelled) return;
-          pdfjs.renderTextLayer({
-            textContentSource: textContent,
-            container: textLayer,
-            viewport: vp,
-            textDivs: [],
-          });
+        try {
+          if (pdfjs.TextLayer) {
+            const tl = new pdfjs.TextLayer({
+              textContentSource: page.streamTextContent({ includeMarkedContent: true }),
+              container: textLayer,
+              viewport: vp,
+            });
+            textLayerInstance.current = tl;
+            await tl.render();
+          } else if (pdfjs.renderTextLayer) {
+            const textContent = await page.getTextContent();
+            if (cancelled) return;
+            pdfjs.renderTextLayer({
+              textContentSource: textContent,
+              container: textLayer,
+              viewport: vp,
+              textDivs: [],
+            });
+          }
+        } catch (tlErr: any) {
+          console.warn(`Page ${pageNum} text layer warning:`, tlErr);
         }
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException" && err?.name !== "AbortException") {
@@ -177,7 +183,7 @@ function PdfPage({ pdf, pdfjs, pageNum, scale, containerWidth, onVisible }: Page
 }
 
 // ─── Main viewer ───────────────────────────────────────────────────────────────
-export function PdfViewer({ fileUrl, title }: PdfViewerProps) {
+export function PdfViewer({ fileUrl, title, onSwitchToText, hasExtractedText }: PdfViewerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [pdfjs, setPdfjs]               = useState<any>(null);
@@ -204,7 +210,12 @@ export function PdfViewer({ fileUrl, title }: PdfViewerProps) {
         if (cancelled) return;
         setPdfjs(lib);
 
-        const doc = await lib.getDocument({ url: fileUrl, withCredentials: false }).promise;
+        const doc = await lib.getDocument({
+          url: fileUrl,
+          withCredentials: false,
+          cMapUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${lib.version || "6.4.299"}/cmaps/`,
+          cMapPacked: true,
+        }).promise;
         if (cancelled) return;
         setPdf(doc);
         setTotalPages(doc.numPages);
@@ -258,16 +269,26 @@ export function PdfViewer({ fileUrl, title }: PdfViewerProps) {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-4 py-20 px-6 text-center">
-        <p className="text-red-500 font-semibold">Could not render PDF</p>
-        <p className="text-xs text-muted-foreground">{error}</p>
-        <a
-          href={fileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90"
-        >
-          <Download className="w-4 h-4" /> Open / Download PDF
-        </a>
+        <p className="text-red-500 font-semibold text-lg">Could not render PDF</p>
+        <p className="text-xs text-muted-foreground max-w-md">{error}</p>
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+          {hasExtractedText && onSwitchToText && (
+            <Button
+              onClick={onSwitchToText}
+              className="gap-2"
+            >
+              <BookOpen className="w-4 h-4" /> Read Extracted Text
+            </Button>
+          )}
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-input bg-background hover:bg-accent rounded-lg text-sm font-semibold transition-colors"
+          >
+            <Download className="w-4 h-4" /> Open / Download File
+          </a>
+        </div>
       </div>
     );
   }
@@ -308,12 +329,28 @@ export function PdfViewer({ fileUrl, title }: PdfViewerProps) {
           </Button>
         </div>
 
-        {/* Download */}
-        <a href={fileUrl} download={title || "document.pdf"}
-          className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 shrink-0">
-          <Download className="w-3 h-3" />
-          <span className="hidden sm:inline">Save</span>
-        </a>
+        {/* Action buttons */}
+        <div className="flex items-center gap-1.5">
+          {hasExtractedText && onSwitchToText && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSwitchToText}
+              className="gap-1.5 h-8 text-xs font-medium"
+              title="Switch to Text Reader"
+            >
+              <BookText className="w-3.5 h-3.5 text-primary" />
+              <span className="hidden sm:inline">Text Reader</span>
+            </Button>
+          )}
+
+          {/* Download */}
+          <a href={fileUrl} download={title || "document.pdf"}
+            className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 shrink-0">
+            <Download className="w-3 h-3" />
+            <span className="hidden sm:inline">Save</span>
+          </a>
+        </div>
       </div>
 
       {/* ── Continuous scroll ────────────────────────────────── */}

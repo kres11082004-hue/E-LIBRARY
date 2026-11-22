@@ -154,9 +154,18 @@ router.post("/upload/file", requireAuth, requireRole("admin", "librarian"), asyn
     if (ext === "pdf") {
       try {
         const pdfParseModule: any = await import("pdf-parse");
-        const pdfParse = pdfParseModule.default || pdfParseModule;
-        const data = await pdfParse(buffer);
-        extractedText = data.text;
+        if (pdfParseModule.PDFParse) {
+          const parser = new pdfParseModule.PDFParse({ data: buffer });
+          const data = await parser.getText();
+          extractedText = data.text;
+          if (parser.destroy) await parser.destroy();
+        } else if (typeof pdfParseModule.default === "function") {
+          const data = await pdfParseModule.default(buffer);
+          extractedText = data.text;
+        } else if (typeof pdfParseModule === "function") {
+          const data = await pdfParseModule(buffer);
+          extractedText = data.text;
+        }
       } catch (parseErr) {
         req.log?.warn({ parseErr }, "Failed to parse PDF text");
       }
