@@ -11,7 +11,15 @@
 
   "rewrites": [
     {
-      "source": "/((?!assets|.*\\.).*)",
+      "source": "/api/:path*",
+      "destination": "https://e-library-2c03.onrender.com/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://e-library-2c03.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/((?!assets|uploads|api|.*\\.).*)",
       "destination": "/index.html"
     }
   ]
